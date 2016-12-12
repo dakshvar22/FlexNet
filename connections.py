@@ -15,7 +15,8 @@ class Connection(object):
     '''
     Abstract class for connections between layers. Not to be instantiated
     '''
-    def __init__(self, fromLayer, toLayer, targetNeurons=None,regularization=None, initialization=None):
+    def __init__(self, fromLayer, toLayer, targetNeurons=None,regularization=None,
+                 initialization=None,return_sequence=False):
 
         '''
         :param fromLayer: Input connection layer
@@ -31,6 +32,7 @@ class Connection(object):
         self.output = None
         self.params = []
         self.targetNeurons = targetNeurons
+        self.return_sequence = return_sequence
 
     #### Implement the below methods ####
 
@@ -48,10 +50,11 @@ class Connection(object):
 
 class OneToOneConnection(Connection):
 
-    def __init__(self, fromLayer, toLayer, regularization=None, initialization=None, targetNeurons=None):
+    def __init__(self, fromLayer, toLayer, regularization=None, initialization=None,
+                 targetNeurons=None,return_sequence=False):
 
         super(OneToOneConnection, self).__init__(fromLayer,toLayer,
-                                                 targetNeurons,regularization,initialization)
+                                                 targetNeurons,regularization,initialization,return_sequence)
 
     def __str__(self):
         return str(self.__dict__)
@@ -76,11 +79,11 @@ class OneToOneConnection(Connection):
         self.output = self.fromLayer.output * self.w
 
 class DenseConnection(Connection):
-    def __init__(self, fromLayer, toLayer, regularization=None, initialization=None, targetNeurons=None):
+    def __init__(self, fromLayer, toLayer, regularization=None, initialization=None, targetNeurons=None,return_sequence=False):
 
 
         super(DenseConnection, self).__init__(fromLayer,toLayer,
-                                              targetNeurons,regularization,initialization)
+                                              targetNeurons,regularization,initialization,return_sequence)
 
     def __str__(self):
         return str(self.__dict__)
@@ -113,9 +116,10 @@ class DenseConnection(Connection):
         self.output = T.dot(self.fromLayer.output,self.w) + self.b
 
 class ConvolutedConnection(Connection):
-    def __init__(self, fromLayer, toLayer, regularization, initialization, input_shape, filter_shape, stride_length, zero_padding):
+    def __init__(self, fromLayer, toLayer, regularization, initialization,
+                 input_shape, filter_shape, stride_length, zero_padding,return_sequence=False):
 
-        super(ConvolutedConnection, self).__init__(fromLayer,toLayer,regularization,initialization)
+        super(ConvolutedConnection, self).__init__(fromLayer,toLayer,regularization,initialization,return_sequence)
 
         '''
         filter shape - 0 - number of filters, 1 - depth, 2 - height, 3 - width
@@ -200,9 +204,9 @@ class ConvolutedConnection(Connection):
         self.output = self.output.reshape(self.toLayer.shape_minibatch_flattened)
 
 class MaxPoolingConnection(Connection):
-    def __init__(self, fromLayer, toLayer,poolSize):
+    def __init__(self, fromLayer, toLayer,poolSize,return_sequence=False):
 
-        super(MaxPoolingConnection, self).__init__(fromLayer,toLayer)
+        super(MaxPoolingConnection, self).__init__(fromLayer,toLayer,return_sequence=return_sequence)
         self.poolSize = poolSize
 
     def __str__(self):

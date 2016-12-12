@@ -18,12 +18,12 @@ w = theano.shared(
 sequence_input = T.tensor3('input')
 sequence_input_shuffled = sequence_input.dimshuffle((1,0,2))
 weights = T.matrix('input')
-
+l = []
 def step(x):
     return T.dot(x,w)
 
-components,updates = theano.scan(step,sequences=sequence_input_shuffled
-                                 # ,non_sequences=weights
+components,updates = theano.scan(step,sequences=sequence_input_shuffled[:-1]
+                                 # ,non_sequences=l
                                  ,outputs_info=None)
 # print components.shape.eval()
 

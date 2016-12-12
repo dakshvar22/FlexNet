@@ -257,8 +257,10 @@ class Layer(object):
 
 class InputLayer(Layer):
 
-    def __init__(self, inputShape,passFunction="passthrough",aggregate_method=None, lossFunction=None, ifOutput=False):
+    def __init__(self, inputShape,passFunction="passthrough",aggregate_method=None,
+                 lossFunction=None, ifOutput=False,sequence_length=1):
         super(InputLayer,self).__init__(inputShape,passFunction,aggregate_method,lossFunction)
+        self.sequence_length = sequence_length
 
     def firstLayerRun(self, input, minibatchSize):
         ### compute shape Tuples(Hack :( )

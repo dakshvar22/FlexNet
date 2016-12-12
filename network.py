@@ -57,7 +57,7 @@ class Network(object):
         self.connections.append(newConnection)
 
     def connectOneToOne(self, fromLayer, toLayer,
-                        regularization = None, initialization = None):
+                        regularization = None, initialization = None,return_sequence=False):
         '''
         :param fromLayer: Layer from which connection originates
         :param toLayer:  Layer at which connection terminates
@@ -75,10 +75,11 @@ class Network(object):
         self.updateLayersInNetwork(fromLayer,toLayer)
 
         # Create a new Connection object and update connections of network
-        c = OneToOneConnection(fromLayer, toLayer, regularization, initialization)
+        c = OneToOneConnection(fromLayer, toLayer, regularization, initialization,return_sequence)
         self.updateConnectionsInNetwork(fromLayer,toLayer,c)
 
-    def connectDense(self, fromLayer, toLayer, regularization = None, initialization = None,targetNeurons=None):
+    def connectDense(self, fromLayer, toLayer, regularization = None,
+                     initialization = None,targetNeurons=None,return_sequence=False):
         '''
         :param fromLayer: Layer from which connection originates
         :param toLayer:  Layer at which connection terminates
@@ -99,12 +100,13 @@ class Network(object):
         self.updateLayersInNetwork(fromLayer,toLayer)
 
         # Create a new Connection object and update connections of network
-        c = DenseConnection(fromLayer, toLayer, regularization, initialization,targetNeurons=targetNeurons)
+        c = DenseConnection(fromLayer, toLayer, regularization, initialization,
+                            targetNeurons=targetNeurons,return_sequence=return_sequence)
         self.updateConnectionsInNetwork(fromLayer,toLayer,c)
 
     def connectConvolution(self, fromLayer, toLayer, input_shape, filter_shape,
                            stride_length, zero_padding, regularization = None,
-                           initialization = None):
+                           initialization = None,return_sequence=False):
         '''
         :param fromLayer: Layer from which connection originates
         :param toLayer:  Layer at which connection terminates
@@ -132,7 +134,7 @@ class Network(object):
         # Create a new Connection object and update connections of network
         c = ConvolutedConnection(fromLayer, toLayer, regularization,
                            initialization, input_shape, filter_shape,
-                           stride_length, zero_padding)
+                           stride_length, zero_padding,return_sequence)
         self.updateConnectionsInNetwork(fromLayer,toLayer,c)
 
     def connectRecurrent(self,fromLayer, toLayer,
@@ -151,7 +153,7 @@ class Network(object):
         c = RecurrentConnection(fromLayer, toLayer, regularization, initialization)
         self.updateConnectionsInNetwork(fromLayer,toLayer,c)
 
-    def connectMaxPool(self,fromLayer,toLayer,poolSize):
+    def connectMaxPool(self,fromLayer,toLayer,poolSize,return_sequence=False):
 
         '''
         :param fromLayer: Layer from which connection originates
@@ -171,7 +173,7 @@ class Network(object):
         self.updateLayersInNetwork(fromLayer,toLayer)
 
         # Create a new Connection object and update connections of network
-        c = MaxPoolingConnection(fromLayer, toLayer, poolSize)
+        c = MaxPoolingConnection(fromLayer, toLayer, poolSize,return_sequence)
         self.updateConnectionsInNetwork(fromLayer, toLayer, c)
 
     def checkErrors(self, miniBatchSize):
@@ -193,6 +195,65 @@ class Network(object):
         if not isOutput:
             raise(OutputLayerNotDefined(self.name))
 
+    def getTimeVariantLayers(self):
+        '''
+        If any layer has all the incoming connections as return_sequence = false, then the output of that layer has
+        to be computed at the last time step only. Otherwise, if even one incoming connection has return_sequence = true
+        then the output for that layer has to be computed at each time step
+        :return: set of layers which operate on timesteps
+        '''
+        timeLayers = []
+        for layer in self.layers:
+            timeLayerFound = False
+            for connection in layer.inConnections:
+                if connection.return_sequence:
+                    timeLayerFound = True
+                    break
+            if timeLayerFound:
+                timeLayers.append(layer)
+        return timeLayers
+
+    def timeVariationalStep(self,x):
+        # Define the feedforward equations for each layer
+        for layer in self.timeVariantLayers:
+            if isinstance(layer,InputLayer):
+                layer.firstLayerRun(x,self.mini_batch_size)
+            else:
+                # Defining the input and output for each layer
+                layer.run(self.mini_batch_size)
+
+        # Update the hidden states of the recurrent connection with the new updated output of fromLayer and run
+        # feedForward so that output variable of that connection gets updated
+
+        ''' Check if this correct over here for time varying case'''
+        for connection in self.connections:
+            if isinstance(connection,RecurrentConnection):
+                connection.recurrentHiddenState = connection.fromLayer.output
+                connection.feedForward(self.mini_batch_size)
+
+        ''' this is wrong - return the output of all those layers which have are around the corner in time varying layers(see example)'''
+        return self.outputLayer.output
+
+    def step(self,x):
+        # Define the feedforward equations for each layer
+        for layer in self.layers:
+            if isinstance(layer,InputLayer):
+                layer.firstLayerRun(x,self.mini_batch_size)
+            else:
+                # Defining the input and output for each layer
+                layer.run(self.mini_batch_size)
+
+        # Update the hidden states of the recurrent connection with the new updated output of fromLayer and run
+        # feedForward so that output variable of that connection gets updated
+
+        ''' Check if this correct over here for time varying case'''
+        for connection in self.connections:
+            if isinstance(connection,RecurrentConnection):
+                connection.recurrentHiddenState = connection.fromLayer.output
+                connection.feedForward(self.mini_batch_size)
+
+        ''' this is wrong - return the output of all those layers which have are around the corner in time varying layers(see example)'''
+        return self.outputLayer.output
 
     def compile(self, mini_batch_size):
         '''
@@ -209,14 +270,23 @@ class Network(object):
         # Apply toposort and get the updated order of layers in which feedforward should run
         self.layers = topological(g)
 
+        # Get time variant layers
+        self.timeVariantLayers = self.getTimeVariantLayers()
+
         self.mini_batch_size = mini_batch_size
 
         # Symbolic theano variable for the input matrix to the network
-        self.x = T.matrix("x")
+        self.x = T.tensor3("x")
 
         # Initialize input and output variables(symbolic) for each layer
         for layer in self.layers:
             layer.initializeInputOutput(mini_batch_size)
+            # Also check the sequence length which is default to 1.
+            if isinstance(layer,InputLayer):
+                self.sequence_length = layer.sequence_length
+            # Assigning the output layer object of the network to the appropriate layer
+            if layer.ifOutput:
+                self.outputLayer = layer
 
         # For each connection initialize the weights(parameters) of the connection
         for connection in self.connections:
@@ -227,34 +297,21 @@ class Network(object):
             if isinstance(connection,RecurrentConnection):
                 connection.feedForward(mini_batch_size)
 
-        # Define the feedforward equations for each layer
-        for layer in self.layers:
-            if isinstance(layer,InputLayer):
-                layer.firstLayerRun(self.x,mini_batch_size)
-            else:
-                # Defining the input and output for each layer
-                layer.run(mini_batch_size)
-                # Assigning the output layer object of the network to the appropriate layer
-                if layer.ifOutput:
-                    self.outputLayer = layer
-
-        # Update the hidden states of the recurrent connection with the new updated output of fromLayer and run
-        # feedForward so that output variable of that connection gets updated
-        for connection in self.connections:
-            if isinstance(connection,RecurrentConnection):
-                connection.recurrentHiddenState = connection.fromLayer.output
-                connection.feedForward(mini_batch_size)
-
-        '''
-        for layer in self.layers:
-            if not isinstance(layer,InputLayer):
-                if layer.ifOutput:
-                    self.outputLayer = layer
-        '''
+        if self.sequence_length > 1:
+            self.x_shuffled = self.x.dimshuffle((1,0,2))
+            self.output, scan_updates = theano.scan(self.timeVariationalStep,sequences=self.x_shuffled[:-1]
+                                 # ,non_sequences=self.timeVariantLayers
+                                 ,outputs_info=None)
+            # self.output,scan_updates = theano.scan(self.step,sequences=self.x_shuffled[-1:]
+            #                                        # ,non_sequences=self.layers
+            #                                        ,outputs_info=None)
+            self.output = [self.step(self.x_shuffled[-1:])]
+        else:
+            self.output = [self.step(self.x)]
 
         # Aggregate all parameters of the network(Used for updation which backpropagation)
         self.params = [param for connection in self.connections for param in connection.params]
-        self.output = self.outputLayer.output
+        # self.output = self.outputLayer.output
 
     def fit(self, training_data, epochs, eta,
             validation_data, test_data, lmbda=0.0):
@@ -287,6 +344,10 @@ class Network(object):
         l2_norm_squared = sum([(param**2).sum() for param in self.params])
         cost = self.outputLayer.cost(self.y,self.mini_batch_size)+0.5*lmbda*l2_norm_squared/num_training_batches
 
+        '''Check the below two statements. Pretty much hardcoded here'''
+        y_out = T.argmax(self.output[-1],axis=1)
+        accuracy = T.mean(T.eq(y_out,self.y))
+
         grads = T.grad(cost, self.params)
         updates = [(param, param-eta*grad)
                    for param, grad in zip(self.params, grads)]
@@ -297,7 +358,8 @@ class Network(object):
 
         train_mb = theano.function(
             [i],
-            [cost,self.layers[-1].output,self.layers[-1].input,self.connections[-1].w],
+            # [cost,self.layers[-1].output,self.layers[-1].input,self.connections[-1].w],
+            [cost],
             updates=updates,
             givens={
                 self.x:
@@ -308,7 +370,9 @@ class Network(object):
 
         # theano.printing.pydotprint(train_mb,outfile='graph.png',format='png')
         validate_mb_accuracy = theano.function(
-            [i], self.layers[-1].accuracy(self.y),
+            [i],
+            # self.layers[-1].accuracy(self.y),
+            accuracy,
             givens={
                 self.x:
                 validation_x[i*self.mini_batch_size: (i+1)*self.mini_batch_size],
@@ -316,7 +380,9 @@ class Network(object):
                 validation_y[i*self.mini_batch_size: (i+1)*self.mini_batch_size]
             },on_unused_input='ignore')
         test_mb_accuracy = theano.function(
-            [i], self.layers[-1].accuracy(self.y),
+            [i],
+            # self.layers[-1].accuracy(self.y),
+            accuracy,
             givens={
                 self.x:
                 test_x[i*self.mini_batch_size: (i+1)*self.mini_batch_size],
@@ -324,10 +390,12 @@ class Network(object):
                 test_y[i*self.mini_batch_size: (i+1)*self.mini_batch_size]
             },on_unused_input='ignore')
         test_mb_predictions = theano.function(
-            [i], [self.layers[-1].output
-                ,
-                  self.layers[-2].output
-                  ],
+            [i], # self.layers[-1].accuracy(self.y),
+            self.outputLayer.output,
+            # [self.layers[-1].output
+            #     ,
+            #       self.layers[-2].output
+            #       ],
             givens={
                 self.x:
                 test_x[i*self.mini_batch_size: (i+1)*self.mini_batch_size]
@@ -349,7 +417,7 @@ class Network(object):
                 iteration = num_training_batches*epoch+minibatch_index
                 if iteration % 1000 == 0:
                     print("Training mini-batch number {0}".format(iteration))
-                cost_ij, output, input, lastConnectionWeights = train_mb(minibatch_index)
+                cost_ij = train_mb(minibatch_index)
                 if (iteration+1) % num_training_batches == 0:
                     validation_accuracy = np.mean(
                         [validate_mb_accuracy(j) for j in range(num_validation_batches)])
