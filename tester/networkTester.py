@@ -18,7 +18,7 @@ import gzip
 import random
 import time
 
-def shallow(epochs=12):
+def shallow(epochs=5):
 
     start = time.time()
 
@@ -134,7 +134,7 @@ def shallow(epochs=12):
         validation_data, test_data)
     '''
 
-    '''
+
     net6 = Network('Simple Bheja')
     l1 = InputLayer(inputShape = (784,1))
     l2 = ActivationLayer(inputShape=(200,1),passFunction='sigmoid')
@@ -155,7 +155,7 @@ def shallow(epochs=12):
 
     net6.fit(training_data, epochs, 0.1,
         validation_data, test_data)
-    '''
+
 
     '''
     net7 = Network('Concat wala Bheja')
@@ -182,7 +182,7 @@ def shallow(epochs=12):
         validation_data, test_data)
     '''
 
-    '''
+
     net7 = Network('Test Recurrent')
     l1 = InputLayer(inputShape = (784,1))
     l2 = ActivationLayer(inputShape=(200,1),passFunction='sigmoid')
@@ -198,8 +198,7 @@ def shallow(epochs=12):
 
     net7.compile(mini_batch_size)
 
-    net7.fit(training_data, epochs, mini_batch_size, 0.1,
-        validation_data, test_data)'''
+    net7.fit(training_data, epochs, 0.1,validation_data, test_data)
 
     '''
     #Does not work with batch size = 15/20 even with sigmoid
@@ -223,7 +222,7 @@ def shallow(epochs=12):
 
     net2.compile(mini_batch_size)
 
-    net2.fit(training_data, epochs, mini_batch_size, 0.1,
+    net2.fit(training_data, epochs, 0.1,
         validation_data, test_data)
 
     '''
@@ -275,7 +274,7 @@ def shallow(epochs=12):
     net7.fit(training_data, epochs, 0.1,validation_data, test_data)
     '''
 
-    '''
+
     net7 = Network('RecurrentCheck')
     l1 = InputLayer(inputShape = (784,1))
     l2 = ActivationLayer(inputShape=(200,1),passFunction='sigmoid')
@@ -288,16 +287,18 @@ def shallow(epochs=12):
     net7.connectDense(l2,l3)
     net7.connectDense(l3,l4)
     net7.connectRecurrent(l3,l2)
+    net7.connectRecurrent(l2,l4)
+    net7.connectRecurrent(l2,l2)
     # l5 = ActivationLayer(inputShape=(300,1), aggregate_method="concat")
     # net.connectDense(l2,l5, targetFraction=100)
     # net.connectDense(l3,l5, targetFraction=200)
 
     net7.compile(mini_batch_size)
     #net7.loadParams("../data/weights/RecurrentCheck_EpochNum_4_accuracy_94.61.pickle")
-    net7.fit(training_data, epochs, mini_batch_size, 0.1,
+    net7.fit(training_data, epochs, 0.1,
         validation_data, test_data)
 
-    '''
+
     '''net = Network('Ho Ja Shuru')
     l1 = InputLayer(inputShape = (784,1))
     l2 = ActivationLayer(inputShape=(700,1),passFunction='sigmoid')
@@ -320,7 +321,7 @@ def shallow(epochs=12):
 
     return net'''
 
-
+    '''
     net = Network('Check Errors')
     l1 = InputLayer(inputShape = (784,1))
     l2 = ActivationLayer(inputShape=(700,1),passFunction='sigmoid')
@@ -338,6 +339,7 @@ def shallow(epochs=12):
     net.compile(128)
     # net.loadParams("../data/weights/Ho Ja Shuru_EpochNum_14_accuracy_92.2475961538")
     net.fit(training_data, epochs, 0.1, validation_data, test_data)
+    '''
 
     end = time.time()
     print end - start
@@ -363,7 +365,7 @@ def load_data_shared(filename="../data/mnist.pkl.gz"):
         return shared_x, T.cast(shared_y, "int32")
     return [shared(training_data), shared(validation_data), shared(test_data)]
 
-mini_batch_size = 128
+mini_batch_size = 20
 training_data, validation_data, test_data = load_data_shared()
 
-net = shallow()
+net = shallow(epochs=60)

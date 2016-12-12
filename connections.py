@@ -222,8 +222,7 @@ class MaxPoolingConnection(Connection):
 class RecurrentConnection(Connection):
     def __init__(self, fromLayer, toLayer, regularization=None, initialization=None):
 
-        super(RecurrentConnection, self).__init__(fromLayer,toLayer,
-                                              None,regularization,initialization)
+        super(RecurrentConnection, self).__init__(fromLayer,toLayer,None,regularization,initialization)
 
         self.targetNeurons = self.toLayer.numOfNeurons
 
@@ -233,43 +232,27 @@ class RecurrentConnection(Connection):
     def initializeWeights(self):
 
         # Initialize the weight matrix according to the input and output dimensions(fromLayer and toLayer)
-        self.w_h = theano.shared(
+        self.w = theano.shared(
             np.asarray(
                 np.random.normal(loc=0.0, scale=np.sqrt(1.0/self.toLayer.numOfNeurons),
-                                 size=(self.targetNeurons,self.targetNeurons)),
+                                 size=(self.fromLayer.numOfNeurons,self.targetNeurons)),
                 dtype=theano.config.floatX),
-            name='w_h', borrow=True)
-
-        self.w_o = theano.shared(
-            np.asarray(
-                np.random.normal(loc=0.0, scale=np.sqrt(1.0/self.toLayer.numOfNeurons),
-                                 size=(self.targetNeurons,self.targetNeurons)),
-                dtype=theano.config.floatX),
-            name='w_o', borrow=True)
-
-        self.b_h = theano.shared(
+            name='w', borrow=True)
+        self.b = theano.shared(
             np.asarray(np.random.normal(loc=0.0, scale=1.0, size=(1,self.targetNeurons)),
                        dtype=theano.config.floatX),
-            name='b_h', borrow=True,broadcastable=(True,False))
+            name='b', borrow=True,broadcastable=(True,False))
 
-        self.b_o = theano.shared(
-            np.asarray(np.random.normal(loc=0.0, scale=1.0, size=(1,self.targetNeurons)),
-                       dtype=theano.config.floatX),
-            name='b_o', borrow=True,broadcastable=(True,False))
-
-        # self.recurrentInput = self.fromLayer.output
-        self.recurrentHiddenState = self.toLayer.output
-        # self.recurrentHiddenOutput = self.fromLayer.output
-
-        self.params = [self.w_h, self.w_o, self.b_h,self.b_o]
+        self.recurrentHiddenState = self.fromLayer.output
+        self.params = [self.w, self.b]
 
     def feedForward(self,miniBatchSize):
 
         # print 'Last Layer Shape: ', self.fromLayer.shape
         # self.recurrentState = self.T.dot()
-        self.recurrentHiddenOutput = T.dot(self.recurrentHiddenState,self.w_h) + self.b_h
+        self.recurrentHiddenOutput = T.dot(self.recurrentHiddenState,self.w) + self.b
         self.outputShape = (miniBatchSize,self.toLayer.numOfNeurons) #### Warning: Not in the case where aggregate_method=concat
 
-    def getUpdatedHiddenOutput(self,toLayer_hiddenState):
-        return T.dot(toLayer_hiddenState,self.w_o) + self.b_o
+    # def getUpdatedHiddenOutput(self,toLayer_hiddenState):
+    #     return T.dot(toLayer_hiddenState,self.w_o) + self.b_o
 

@@ -159,6 +159,7 @@ class Layer(object):
         for recurrentConnection in self.recurrentInConnections:
             self.input += recurrentConnection.recurrentHiddenOutput
 
+        '''
         if len(self.recurrentInConnections) > 0:
             # self.hiddenState = self.passFunction(self.input)
             aggregatedRecurrentInput = T.zeros((minibatchSize,self.numOfNeurons))
@@ -169,9 +170,8 @@ class Layer(object):
             self.output = self.passFunction(aggregatedRecurrentInput)
         else:
             self.output = self.passFunction(self.input)
-
-        # for recurrentConnection in self.recurrentOutConnections:
-        #     recurrentConnection.recurrentInput = self.output
+        '''
+        self.output = self.passFunction(self.input)
 
         # Add dropout
         self.addDropout()
@@ -299,6 +299,7 @@ class MemoryLayer(Layer):
             self.input += recurrentConnection.recurrentHiddenOutput
 
         ''' May be buggy : not sure if self.output will be reinitialized to 0 in each run. Ideally it should not'''
+        '''
         if len(self.recurrentInConnections) > 0:
             # self.hiddenState = self.passFunction(self.input)
             aggregatedRecurrentInput = T.zeros((minibatchSize,self.numOfNeurons))
@@ -309,6 +310,8 @@ class MemoryLayer(Layer):
             self.output += self.passFunction(aggregatedRecurrentInput)
         else:
             self.output += self.passFunction(self.input)
+        '''
+        self.output += self.passFunction(self.input)
 
         self.addDropout()
 

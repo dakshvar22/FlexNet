@@ -238,11 +238,11 @@ class Network(object):
                 if layer.ifOutput:
                     self.outputLayer = layer
 
-        # Update the hidden states of the recurrent connection with the new updated hidden state of fromLayer and run
+        # Update the hidden states of the recurrent connection with the new updated output of fromLayer and run
         # feedForward so that output variable of that connection gets updated
         for connection in self.connections:
             if isinstance(connection,RecurrentConnection):
-                connection.recurrentHiddenState = connection.fromLayer.hiddenState
+                connection.recurrentHiddenState = connection.fromLayer.output
                 connection.feedForward(mini_batch_size)
 
         '''
