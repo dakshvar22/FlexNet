@@ -1,0 +1,65 @@
+Epoch 0: validation accuracy 91.16%
+This is the best validation accuracy to date.
+The corresponding test accuracy is 90.75%
+[  8.17366934e-04   3.67491157e-05   6.78776763e-04   2.87371641e-03
+   2.62983576e-05   2.84206850e-04   5.68318183e-06   3.37728038e-02
+   1.29127380e-04   6.88197557e-04] [ 20 100]
+Training mini-batch number 3000
+Training mini-batch number 4000
+Epoch 1: validation accuracy 92.89%
+This is the best validation accuracy to date.
+The corresponding test accuracy is 92.48%
+[  3.95797717e-04   1.20352233e-05   5.47711679e-04   1.71574974e-03
+   2.33108676e-06   1.26657251e-04   1.34040647e-06   3.22184041e-02
+   5.93074583e-05   3.15257348e-04] [ 20 100]
+Training mini-batch number 5000
+Training mini-batch number 6000
+Training mini-batch number 7000
+Epoch 2: validation accuracy 94.13%
+This is the best validation accuracy to date.
+The corresponding test accuracy is 93.55%
+[  1.64170109e-04   6.30697923e-06   3.29654868e-04   8.58187443e-04
+   6.87671729e-07   4.16976582e-05   5.50565403e-07   3.09642889e-02
+   2.10926773e-05   1.44877369e-04] [ 20 100]
+Training mini-batch number 8000
+Training mini-batch number 9000
+Epoch 3: validation accuracy 94.91%
+This is the best validation accuracy to date.
+The corresponding test accuracy is 94.29%
+[  8.46070689e-05   4.27722762e-06   1.95374247e-04   4.73192835e-04
+   3.44519890e-07   1.84807668e-05   2.24486840e-07   3.12725678e-02
+   9.73754231e-06   7.40127361e-05] [ 20 100]
+Training mini-batch number 10000
+Training mini-batch number 11000
+Training mini-batch number 12000
+Epoch 4: validation accuracy 95.35%
+This is the best validation accuracy to date.
+The corresponding test accuracy is 94.86%
+[  5.64755283e-05   3.22213009e-06   1.24726299e-04   3.37672886e-04
+   2.23506945e-07   1.04730325e-05   1.08189539e-07   3.24484184e-02
+   5.50959567e-06   4.88512596e-05] [ 20 100]
+Training mini-batch number 13000
+Training mini-batch number 14000
+Epoch 5: validation accuracy 95.88%
+This is the best validation accuracy to date.
+The corresponding test accuracy is 95.28%
+[  3.94380477e-05   2.67073619e-06   8.54361133e-05   2.73430138e-04
+   1.51508829e-07   8.45428713e-06   5.52414043e-08   3.37646008e-02
+   4.03833428e-06   3.72088252e-05] [ 20 100]
+Training mini-batch number 15000
+Training mini-batch number 16000
+Training mini-batch number 17000
+Epoch 6: validation accuracy 96.19%
+This is the best validation accuracy to date.
+The corresponding test accuracy is 95.63%
+[  2.80002114e-05   2.41434032e-06   6.16516481e-05   2.38618770e-04
+   1.00594391e-07   6.42763371e-06   3.22064651e-08   3.43873613e-02
+   3.11495091e-06   2.96077396e-05] [ 20 100]
+Training mini-batch number 18000
+Training mini-batch number 19000
+Epoch 7: validation accuracy 96.44%
+This is the best validation accuracy to date.
+The corresponding test accuracy is 95.93%
+[  2.16061853e-05   2.17744923e-06   5.17303888e-05   2.31986647e-04
+   7.36753094e-08   6.02131195e-06   2.14084039e-08   3.39599177e-02
+   2.80054041e-06   2.47420758e-05] [ 20 100]
