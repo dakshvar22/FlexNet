@@ -275,18 +275,25 @@ class Network(object):
 
         self.mini_batch_size = mini_batch_size
 
-        # Symbolic theano variable for the input matrix to the network
-        self.x = T.tensor3("x")
-
         # Initialize input and output variables(symbolic) for each layer
         for layer in self.layers:
             layer.initializeInputOutput(mini_batch_size)
             # Also check the sequence length which is default to 1.
             if isinstance(layer,InputLayer):
+                self.inputLayer = layer
                 self.sequence_length = layer.sequence_length
             # Assigning the output layer object of the network to the appropriate layer
             if layer.ifOutput:
                 self.outputLayer = layer
+
+        # Symbolic theano variable for the input matrix to the network
+        inputLen = len(self.inputLayer.shape)
+        if self.sequence_length == 1:
+            self.x = T.TensorType('float64',(False,)*(inputLen + 1))()
+        else:
+            self.x = T.TensorType('float64',(False,)*(inputLen + 2))()
+
+        # print self.x.ndim
 
         # For each connection initialize the weights(parameters) of the connection
         for connection in self.connections:
@@ -298,7 +305,10 @@ class Network(object):
                 connection.feedForward(mini_batch_size)
 
         if self.sequence_length > 1:
-            self.x_shuffled = self.x.dimshuffle((1,0,2))
+            shuffledList = [x for x in range(inputLen+2)]
+            shuffledList[0],shuffledList[1] = 1,0
+
+            self.x_shuffled = self.x.dimshuffle(tuple(shuffledList))
             self.output, scan_updates = theano.scan(self.timeVariationalStep,sequences=self.x_shuffled[:-1]
                                  # ,non_sequences=self.timeVariantLayers
                                  ,outputs_info=None)

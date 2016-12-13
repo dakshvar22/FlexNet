@@ -344,16 +344,16 @@ def shallow(epochs=5):
     '''
 
     net = Network('Sequences')
-    l1 = InputLayer(inputShape = (196,1),sequence_length=4)
-    l2 = ActivationLayer(inputShape=(300,1),passFunction='sigmoid')
-    l5 = ActivationLayer(inputShape=(150,1),passFunction='sigmoid')
-    l3 = ActivationLayer(inputShape=(100,1),passFunction='sigmoid')
-    l4 = ActivationLayer(inputShape=(10,1),passFunction='softmax',ifOutput=True,lossFunction="negativeLogLikelihood")
+    l1 = InputLayer(inputShape = (196,), sequence_length=4)
+    l2 = ActivationLayer(inputShape=(300,), passFunction='sigmoid')
+    l5 = ActivationLayer(inputShape=(150,), passFunction='sigmoid')
+    l3 = ActivationLayer(inputShape=(100,), passFunction='sigmoid')
+    l4 = ActivationLayer(inputShape=(10,), passFunction='softmax',ifOutput=True,lossFunction="negativeLogLikelihood")
 
     net.connectDense(l1,l2,return_sequence=True)
     # net.connectOneToOne(l1,l2)
     # net.connectDense(l2,l2)
-    net.connectRecurrent(l5,l2)
+    # net.connectRecurrent(l5,l2)
     net.connectDense(l2,l5,return_sequence=True)
     net.connectDense(l5,l3,return_sequence=False)
     net.connectDense(l3,l4,return_sequence=False)
@@ -382,6 +382,7 @@ def load_data_shared(filename="../data/mnist.pkl.gz"):
         """
         shared_x = theano.shared(
             np.asarray(data[0].reshape(data[0].shape[0],data[0].shape[1]/196,data[0].shape[1]/4), dtype=theano.config.floatX), borrow=True)
+            # np.asarray(data[0], dtype=theano.config.floatX), borrow=True)
         shared_y = theano.shared(
             np.asarray(data[1], dtype=theano.config.floatX), borrow=True)
         return shared_x, T.cast(shared_y, "int32")
