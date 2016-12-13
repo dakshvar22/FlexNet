@@ -21,7 +21,7 @@ class Network(object):
         self.optimizer = None   #Optimizer Type (Currently only SGD)
         self.connections = []   #List of Connections
         self.name = name    #Initialize name of Network
-        self.outputLayer = None #Currently just one output layer
+        self.outputLayers = []
 
     def addLayer(self, layer):
         '''
@@ -232,7 +232,7 @@ class Network(object):
                 connection.feedForward(self.mini_batch_size)
 
         ''' this is wrong - return the output of all those layers which have are around the corner in time varying layers(see example)'''
-        return self.outputLayer.output
+        return self.timeVariantLayers[-1].output
 
     def step(self,x):
         # Define the feedforward equations for each layer
@@ -252,8 +252,7 @@ class Network(object):
                 connection.recurrentHiddenState = connection.fromLayer.output
                 connection.feedForward(self.mini_batch_size)
 
-        ''' this is wrong - return the output of all those layers which have are around the corner in time varying layers(see example)'''
-        return self.outputLayer.output
+        return [layer.output for layer in self.outputLayers]
 
     def compile(self, mini_batch_size):
         '''
@@ -284,7 +283,7 @@ class Network(object):
                 self.sequence_length = layer.sequence_length
             # Assigning the output layer object of the network to the appropriate layer
             if layer.ifOutput:
-                self.outputLayer = layer
+                self.outputLayers.append(layer)
 
         # Symbolic theano variable for the input matrix to the network
         inputLen = len(self.inputLayer.shape)
@@ -315,9 +314,9 @@ class Network(object):
             # self.output,scan_updates = theano.scan(self.step,sequences=self.x_shuffled[-1:]
             #                                        # ,non_sequences=self.layers
             #                                        ,outputs_info=None)
-            self.output = [self.step(self.x_shuffled[-1:])]
+            self.output = self.step(self.x_shuffled[-1:])
         else:
-            self.output = [self.step(self.x)]
+            self.output = self.step(self.x)
 
         # Aggregate all parameters of the network(Used for updation which backpropagation)
         self.params = [param for connection in self.connections for param in connection.params]
@@ -351,12 +350,17 @@ class Network(object):
 
         self.y = T.ivector("y")
         # define the (regularized) cost function, symbolic gradients, and updates
-        l2_norm_squared = sum([(param**2).sum() for param in self.params])
-        cost = self.outputLayer.cost(self.y,self.mini_batch_size)+0.5*lmbda*l2_norm_squared/num_training_batches
-
-        '''Check the below two statements. Pretty much hardcoded here'''
-        y_out = T.argmax(self.output[-1],axis=1)
-        accuracy = T.mean(T.eq(y_out,self.y))
+        # l2_norm_squared = sum([(param**2).sum() for param in self.params])
+        # cost = self.outputLayer.cost(self.y,self.mini_batch_size)+0.5*lmbda*l2_norm_squared/num_training_batches
+        cost = 0
+        for layer in self.outputLayers:
+            cost += layer.cost(self.y,self.mini_batch_size)
+        # y_out = T.argmax(self.output[-1],axis=1)
+        # accuracy = T.mean(T.eq(y_out,self.y))
+        accuracy = 0
+        for layer in self.outputLayers:
+            accuracy += layer.accuracy(self.y)
+        accuracy /= len(self.outputLayers)
 
         grads = T.grad(cost, self.params)
         updates = [(param, param-eta*grad)
@@ -401,7 +405,7 @@ class Network(object):
             },on_unused_input='ignore')
         test_mb_predictions = theano.function(
             [i], # self.layers[-1].accuracy(self.y),
-            self.outputLayer.output,
+            [layer.output for layer in self.outputLayers],
             # [self.layers[-1].output
             #     ,
             #       self.layers[-2].output

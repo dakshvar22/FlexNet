@@ -176,10 +176,10 @@ class Layer(object):
         # Add dropout
         self.addDropout()
 
-        self.y_out = T.argmax(self.output, axis=1)
 
     def cost(self, y, size):
         "Return the log-likelihood cost."
+        # Only supports 1D output
         self.output = self.output.reshape((size, self.numOfNeurons))
         # return -T.mean(T.log(self.output)[T.arange(size), y])
         return self.lossFunction(self.output,y)
@@ -187,7 +187,7 @@ class Layer(object):
 
     def accuracy(self, y):
         "Return the accuracy for the mini-batch."
-        print self.y_out.shape
+        self.y_out = T.argmax(self.output, axis=1)
         return T.mean(T.eq(y, self.y_out))
 
     def getPassFunction(self,passFunction):

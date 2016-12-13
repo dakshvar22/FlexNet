@@ -343,6 +343,7 @@ def shallow(epochs=5):
     net.fit(training_data, epochs, 0.1, validation_data, test_data)
     '''
 
+    '''
     net = Network('Sequences')
     l1 = InputLayer(inputShape = (196,), sequence_length=4)
     l2 = ActivationLayer(inputShape=(300,), passFunction='sigmoid')
@@ -354,6 +355,28 @@ def shallow(epochs=5):
     # net.connectOneToOne(l1,l2)
     # net.connectDense(l2,l2)
     # net.connectRecurrent(l5,l2)
+    net.connectDense(l2,l5,return_sequence=True)
+    net.connectDense(l5,l3,return_sequence=False)
+    net.connectDense(l3,l4,return_sequence=False)
+
+    net.compile(mini_batch_size)
+    # net.loadParams("../data/weights/Ho Ja Shuru_EpochNum_14_accuracy_92.2475961538")
+    net.fit(training_data, epochs, 0.1, validation_data, test_data)
+    '''
+
+    net = Network('Check Multiple Output')
+    l1 = InputLayer(inputShape = (196,), sequence_length=4)
+    l2 = ActivationLayer(inputShape=(300,), passFunction='sigmoid')
+    l5 = ActivationLayer(inputShape=(150,), passFunction='sigmoid')
+    l6 = ActivationLayer(inputShape=(10,), passFunction='softmax',ifOutput=True,lossFunction="negativeLogLikelihood")
+    l3 = ActivationLayer(inputShape=(100,), passFunction='sigmoid')
+    l4 = ActivationLayer(inputShape=(10,), passFunction='softmax',ifOutput=True,lossFunction="negativeLogLikelihood")
+
+    net.connectDense(l1,l2,return_sequence=True)
+    # net.connectOneToOne(l1,l2)
+    # net.connectDense(l2,l2)
+    net.connectRecurrent(l5,l2)
+    net.connectDense(l5,l6,return_sequence=False)
     net.connectDense(l2,l5,return_sequence=True)
     net.connectDense(l5,l3,return_sequence=False)
     net.connectDense(l3,l4,return_sequence=False)
