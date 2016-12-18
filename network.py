@@ -209,6 +209,9 @@ class Network(object):
                 if connection.return_sequence:
                     timeLayerFound = True
                     break
+            if isinstance(layer,InputLayer):
+                if layer.sequence_length > 1:
+                    timeLayerFound = True
             if timeLayerFound:
                 timeLayers.append(layer)
         return timeLayers
@@ -234,7 +237,7 @@ class Network(object):
         ''' this is wrong - return the output of all those layers which have are around the corner in time varying layers(see example)'''
         return self.timeVariantLayers[-1].output
 
-    def step(self,x):
+    def step(self,x,output_r=None):
         # Define the feedforward equations for each layer
         for layer in self.layers:
             if isinstance(layer,InputLayer):
@@ -252,7 +255,7 @@ class Network(object):
                 connection.recurrentHiddenState = connection.fromLayer.output
                 connection.feedForward(self.mini_batch_size)
 
-        return [layer.output for layer in self.outputLayers]
+        return [layer.output for layer in self.outputLayers],output_r
 
     def compile(self, mini_batch_size):
         '''
@@ -308,17 +311,17 @@ class Network(object):
             shuffledList[0],shuffledList[1] = 1,0
 
             self.x_shuffled = self.x.dimshuffle(tuple(shuffledList))
-            self.output, scan_updates = theano.scan(self.timeVariationalStep,sequences=self.x_shuffled[:-1]
+            self.output_r, scan_updates = theano.scan(self.timeVariationalStep,sequences=self.x_shuffled[:-1]
                                  # ,non_sequences=self.timeVariantLayers
                                  ,outputs_info=None)
             # self.output,scan_updates = theano.scan(self.step,sequences=self.x_shuffled[-1:]
             #                                        # ,non_sequences=self.layers
             #                                        ,outputs_info=None)
-            self.output = self.step(self.x_shuffled[-1:])
+            self.output = self.step(self.x_shuffled[-1:],self.output_r)[0]
         else:
-            self.output = self.step(self.x)
+            self.output = self.step(self.x)[0]
 
-        # Aggregate all parameters of the network(Used for updation which backpropagation)
+        # Aggregate all parameters of the network(Used for updation during backpropagation)
         self.params = [param for connection in self.connections for param in connection.params]
         # self.output = self.outputLayer.output
 

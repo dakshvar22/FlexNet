@@ -376,10 +376,10 @@ def shallow(epochs=5):
     # net.connectOneToOne(l1,l2)
     # net.connectDense(l2,l2)
     net.connectRecurrent(l5,l2)
-    net.connectDense(l5,l6,return_sequence=False)
+    net.connectDense(l5,l6)
     net.connectDense(l2,l5,return_sequence=True)
-    net.connectDense(l5,l3,return_sequence=False)
-    net.connectDense(l3,l4,return_sequence=False)
+    net.connectDense(l5,l3)
+    net.connectDense(l3,l4)
 
     net.compile(mini_batch_size)
     # net.loadParams("../data/weights/Ho Ja Shuru_EpochNum_14_accuracy_92.2475961538")
