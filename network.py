@@ -8,6 +8,7 @@ from pprint import pprint
 import math
 import cPickle
 import time
+from theano.ifelse import ifelse
 
 class Network(object):
 
@@ -228,16 +229,17 @@ class Network(object):
         # Update the hidden states of the recurrent connection with the new updated output of fromLayer and run
         # feedForward so that output variable of that connection gets updated
 
-        ''' Check if this correct over here for time varying case'''
-        for connection in self.connections:
-            if isinstance(connection,RecurrentConnection):
-                connection.recurrentHiddenState = connection.fromLayer.output
-                connection.feedForward(self.mini_batch_size)
-
+        # ''' Check if this correct over here for time varying case'''
+        # for connection in self.connections:
+        #     if isinstance(connection,RecurrentConnection):
+        #         connection.recurrentHiddenState = connection.fromLayer.output
+        #         connection.feedForward(self.mini_batch_size)
+        #
         ''' this is wrong - return the output of all those layers which have are around the corner in time varying layers(see example)'''
-        return self.timeVariantLayers[-1].output
+        # return self.timeVariantLayers[-1].output
+        return [layer.output for layer in self.outputLayers]
 
-    def step(self,x,output_r=None):
+    def step(self,x):
         # Define the feedforward equations for each layer
         for layer in self.layers:
             if isinstance(layer,InputLayer):
@@ -249,13 +251,50 @@ class Network(object):
         # Update the hidden states of the recurrent connection with the new updated output of fromLayer and run
         # feedForward so that output variable of that connection gets updated
 
+        # ''' Check if this correct over here for time varying case'''
+        # for connection in self.connections:
+        #     if isinstance(connection,RecurrentConnection):
+        #         connection.recurrentHiddenState = connection.fromLayer.output
+        #         connection.feedForward(self.mini_batch_size)
+        #
+        # # return [(layer.output,layer.name) for layer in self.outputLayers]
+        return [layer.output for layer in self.outputLayers]
+
+    def step2(self,x,idx):
+        # Define the feedforward equations for each layer
+        # for layer in self.layers:
+        #     if T.lt(idx,self.sequence_length-1):
+        #         # if index is less that N
+        #         if layer in self.timeVariantLayers:
+        #             if isinstance(layer,InputLayer):
+        #                 layer.firstLayerRun(x,self.mini_batch_size)
+        #             else:
+        #                 # Defining the input and output for each layer
+        #                 layer.run(self.mini_batch_size)
+        #         else:
+        #             continue
+        #     else:
+        #         # if this is last time step
+        #         print 'came here'
+        #         if isinstance(layer,InputLayer):
+        #             layer.firstLayerRun(x,self.mini_batch_size)
+        #         else:
+        #             # Defining the input and output for each layer
+        #             layer.run(self.mini_batch_size)
+        # print self.sequence_length
+        t = T.switch(T.lt(idx,self.sequence_length-1),self.timeVariationalStep(x),self.step(x))
+
+        # Update the hidden states of the recurrent connection with the new updated output of fromLayer and run
+        # feedForward so that output variable of that connection gets updated
+
         ''' Check if this correct over here for time varying case'''
         for connection in self.connections:
             if isinstance(connection,RecurrentConnection):
                 connection.recurrentHiddenState = connection.fromLayer.output
                 connection.feedForward(self.mini_batch_size)
 
-        return [layer.output for layer in self.outputLayers],output_r
+        # return [(layer.output,layer.name) for layer in self.outputLayers]
+        return [layer.output for layer in self.outputLayers]
 
     def compile(self, mini_batch_size):
         '''
@@ -274,6 +313,9 @@ class Network(object):
 
         # Get time variant layers
         self.timeVariantLayers = self.getTimeVariantLayers()
+        for i in self.timeVariantLayers:
+            print i.name
+        print 'done'
 
         self.mini_batch_size = mini_batch_size
 
@@ -306,23 +348,38 @@ class Network(object):
             if isinstance(connection,RecurrentConnection):
                 connection.feedForward(mini_batch_size)
 
-        if self.sequence_length > 1:
-            shuffledList = [x for x in range(inputLen+2)]
-            shuffledList[0],shuffledList[1] = 1,0
+        # if self.sequence_length > 1:
+        #     shuffledList = [x for x in range(inputLen+2)]
+        #     shuffledList[0],shuffledList[1] = 1,0
+        #
+        #     self.x_shuffled = self.x.dimshuffle(tuple(shuffledList))
+        #     self.output_r, scan_updates = theano.scan(self.timeVariationalStep,sequences=self.x_shuffled[:-1]
+        #                          # ,non_sequences=self.timeVariantLayers
+        #                          ,outputs_info=None)
+        #     # self.output,scan_updates = theano.scan(self.step,sequences=self.x_shuffled[-1:]
+        #     #                                        # ,non_sequences=self.layers
+        #     #                                        ,outputs_info=None)
+        #     self.output = self.step(self.x_shuffled[-1:],self.output_r)[0]
+        # else:
+        #     self.output = self.step(self.x)[0]
+        shuffledList = [x for x in range(inputLen+2)]
+        shuffledList[0],shuffledList[1] = 1,0
+        self.x_shuffled = self.x.dimshuffle(tuple(shuffledList))
 
-            self.x_shuffled = self.x.dimshuffle(tuple(shuffledList))
-            self.output_r, scan_updates = theano.scan(self.timeVariationalStep,sequences=self.x_shuffled[:-1]
-                                 # ,non_sequences=self.timeVariantLayers
-                                 ,outputs_info=None)
-            # self.output,scan_updates = theano.scan(self.step,sequences=self.x_shuffled[-1:]
-            #                                        # ,non_sequences=self.layers
-            #                                        ,outputs_info=None)
-            self.output = self.step(self.x_shuffled[-1:],self.output_r)[0]
-        else:
-            self.output = self.step(self.x)[0]
+        output, self.scan_updates = theano.scan(self.step2,
+                                           sequences=[self.x_shuffled,T.arange(self.x_shuffled.shape[0])]
+                                             # ,non_sequences=self.timeVariantLayers
+                                             ,outputs_info=None
+                                            # ,n_steps=self.sequence_length-1
+                                             )
+        # print type(self.scan_updates)
+        # timeFunctionCall = theano.function([],[output],updates=scan_updates)
+        # out = timeFunctionCall()
+        # self.output = self.step(self.x_shuffled[-1:])
 
         # Aggregate all parameters of the network(Used for updation during backpropagation)
         self.params = [param for connection in self.connections for param in connection.params]
+        self.output = output[-1]
         # self.output = self.outputLayer.output
 
     def fit(self, training_data, epochs, eta,
@@ -353,14 +410,16 @@ class Network(object):
 
         self.y = T.ivector("y")
         # define the (regularized) cost function, symbolic gradients, and updates
-        # l2_norm_squared = sum([(param**2).sum() for param in self.params])
-        # cost = self.outputLayer.cost(self.y,self.mini_batch_size)+0.5*lmbda*l2_norm_squared/num_training_batches
-        cost = 0
-        for layer in self.outputLayers:
-            cost += layer.cost(self.y,self.mini_batch_size)
+        cost = 0.0
+        # for layer in self.outputLayers:
+        #     cost += layer.cost(self.y,self.mini_batch_size)
+        # for output,layerName in self.output:
+        #     cost += self.layer_by_name[layerName].cost(self.y,output,self.mini_batch_size)
+        # print self.output
+        cost = negativeLogLikelihood(self.output[0],self.y) + negativeLogLikelihood(self.output[1],self.y)
         # y_out = T.argmax(self.output[-1],axis=1)
         # accuracy = T.mean(T.eq(y_out,self.y))
-        accuracy = 0
+        accuracy = 0.0
         for layer in self.outputLayers:
             accuracy += layer.accuracy(self.y)
         accuracy /= len(self.outputLayers)
@@ -368,6 +427,7 @@ class Network(object):
         grads = T.grad(cost, self.params)
         updates = [(param, param-eta*grad)
                    for param, grad in zip(self.params, grads)]
+        # print type(updates)
 
         # define functions to train a mini-batch, and to compute the
         # accuracy in validation and test mini-batches.
@@ -377,16 +437,21 @@ class Network(object):
             [i],
             # [cost,self.layers[-1].output,self.layers[-1].input,self.connections[-1].w],
             [cost],
-            updates=updates,
+            # mode=theano.compile.MonitorMode(
+            #             pre_func=inspect_inputs,
+            #             post_func=inspect_outputs),
+            updates=updates + self.scan_updates,
             givens={
                 self.x:
                 training_x[i*self.mini_batch_size: (i+1)*self.mini_batch_size],
                 self.y:
                 training_y[i*self.mini_batch_size: (i+1)*self.mini_batch_size]
-            },on_unused_input='ignore')
+            }
+            # ,on_unused_input='ignore'
+        )
 
         # theano.printing.pydotprint(train_mb,outfile='graph.png',format='png')
-        validate_mb_accuracy = theano.function(
+        '''validate_mb_accuracy = theano.function(
             [i],
             # self.layers[-1].accuracy(self.y),
             accuracy,
@@ -396,6 +461,7 @@ class Network(object):
                 self.y:
                 validation_y[i*self.mini_batch_size: (i+1)*self.mini_batch_size]
             },on_unused_input='ignore')
+
         test_mb_accuracy = theano.function(
             [i],
             # self.layers[-1].accuracy(self.y),
@@ -418,7 +484,7 @@ class Network(object):
                 test_x[i*self.mini_batch_size: (i+1)*self.mini_batch_size]
             },on_unused_input='ignore')
 
-
+        '''
         # Do the actual training
         best_validation_accuracy = 0.0
         '''
@@ -435,7 +501,7 @@ class Network(object):
                 if iteration % 1000 == 0:
                     print("Training mini-batch number {0}".format(iteration))
                 cost_ij = train_mb(minibatch_index)
-                if (iteration+1) % num_training_batches == 0:
+                '''if (iteration+1) % num_training_batches == 0:
                     validation_accuracy = np.mean(
                         [validate_mb_accuracy(j) for j in range(num_validation_batches)])
                     print("Epoch {0}: validation accuracy {1:.2%}".format(
@@ -447,40 +513,31 @@ class Network(object):
                         best_validation_accuracy = validation_accuracy
                         best_iteration = iteration
 
-                        '''
-                        # Save Model for future reference
-                        for eachConnection in self.connections:
-                            connectionName = eachConnection.toLayer.name + "+" + eachConnection.fromLayer.name
-                            print connectionName
-                            fileName = "../data/weights/" + self.name + "_EpochNum_" + str(epoch) + "_accuracy_" + str(best_validation_accuracy*100) + connectionName + ".pickle"
-                            #dictToSave[connectionName] = eachConnection.params
-                            #dictToSave[connectionName] = [param.get_value() for param in eachConnection.params]
-                            saveList = eachConnection.params
-                            print fileName
-                            with open(fileName, 'wb') as handle:
-                                cPickle.dump(saveList, handle, protocol=cPickle.HIGHEST_PROTOCOL)
 
-                        #To Load
-                        #with open(filename.pickle, 'rb') as handle:
-                        #    unserialized_data = pickle.load(handle)
-                        '''
-                        '''
-                        yn = raw_input("Do you want to check??? ")
-                        if(yn == "T"):
-                            while(raw_input("Please type character $ when done : else, the code pauses for 2 seconds") != "$"):
-                                time.sleep(2)
-                                break
-                        '''
+                        # # Save Model for future reference
+                        # for eachConnection in self.connections:
+                        #     connectionName = eachConnection.toLayer.name + "+" + eachConnection.fromLayer.name
+                        #     print connectionName
+                        #     fileName = "../data/weights/" + self.name + "_EpochNum_" + str(epoch) + "_accuracy_" + str(best_validation_accuracy*100) + connectionName + ".pickle"
+                        #     #dictToSave[connectionName] = eachConnection.params
+                        #     #dictToSave[connectionName] = [param.get_value() for param in eachConnection.params]
+                        #     saveList = eachConnection.params
+                        #     print fileName
+                        #     with open(fileName, 'wb') as handle:
+                        #         cPickle.dump(saveList, handle, protocol=cPickle.HIGHEST_PROTOCOL)
+                        #
+                        # #To Load
+                        # #with open(filename.pickle, 'rb') as handle:
+                        # #    unserialized_data = pickle.load(handle)
+                        #
+
                         if test_data:
                             test_accuracy = np.mean(
                                 [test_mb_accuracy(j) for j in range(num_test_batches)])
                             print('The corresponding test accuracy is {0:.2%}'.format(
                                 test_accuracy))
 
-                    '''Debug prints'''
-                    preds = test_mb_predictions(0)
-                    # print preds[0],preds[1]
-
+                    '''
             print time.time() - tic
         print("Finished training network.")
         print("Best validation accuracy of {0:.2%} obtained at iteration {1}".format(
@@ -651,7 +708,7 @@ class Network(object):
         for i, layer in enumerate(self.layers):
             # Also generates names for each of the layers, if not given already.
             if not layer.name:
-                layer.setName('Layer%d' %(i))
+                layer.setName('Layer%d%s' %(i+1,str(layer.shape)))
 
             # Raise an exception if there is a name clash
             if self.layer_by_name.has_key(layer.name):
@@ -662,4 +719,10 @@ class Network(object):
     def transform(self, data):
         #transform the dataset if needed
         pass
+
+def inspect_inputs(i, node, fn):
+    print(i, node, "input(s) value(s):", [input[0] for input in fn.inputs])
+
+def inspect_outputs(i, node, fn):
+    print(" output(s) value(s):", [output[0] for output in fn.outputs])
 

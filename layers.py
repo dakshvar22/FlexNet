@@ -140,7 +140,7 @@ class Layer(object):
         to form the input for this layer, followed by an activation function on this total input
         :return:
         '''
-
+        print self.name
         ### compute shape Tuples(Hack :( )
         self.computeShapes(minibatchSize)
 
@@ -177,12 +177,13 @@ class Layer(object):
         self.addDropout()
 
 
-    def cost(self, y, size):
+    def cost(self, y, predict_y, size):
         "Return the log-likelihood cost."
         # Only supports 1D output
-        self.output = self.output.reshape((size, self.numOfNeurons))
+        # self.output = self.output.reshape((size, self.numOfNeurons))
+        predict_y = predict_y.reshape((size,self.numOfNeurons))
         # return -T.mean(T.log(self.output)[T.arange(size), y])
-        return self.lossFunction(self.output,y)
+        return self.lossFunction(predict_y,y)
         # return -T.mean(y * T.log(self.output) + (1-y) * T.log(1 - self.output))
 
     def accuracy(self, y):
