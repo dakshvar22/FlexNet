@@ -70,8 +70,6 @@ class Network(object):
         if fromLayer == toLayer:
             raise(ConnectionToItself())
 
-
-
         # Add Layers to self.layers if layer does not exist already
         self.updateLayersInNetwork(fromLayer,toLayer)
 
@@ -364,10 +362,10 @@ class Network(object):
         #     self.output = self.step(self.x)[0]
         shuffledList = [x for x in range(inputLen+2)]
         shuffledList[0],shuffledList[1] = 1,0
-        self.x_shuffled = self.x.dimshuffle(tuple(shuffledList))
+        x_shuffled = self.x.dimshuffle(tuple(shuffledList))
 
         output, self.scan_updates = theano.scan(self.step2,
-                                           sequences=[self.x_shuffled,T.arange(self.x_shuffled.shape[0])]
+                                           sequences=[x_shuffled,T.arange(x_shuffled.shape[0])]
                                              # ,non_sequences=self.timeVariantLayers
                                              ,outputs_info=None
                                             # ,n_steps=self.sequence_length-1
@@ -410,7 +408,7 @@ class Network(object):
 
         self.y = T.ivector("y")
         # define the (regularized) cost function, symbolic gradients, and updates
-        cost = 0.0
+        # cost = 0.0
         # for layer in self.outputLayers:
         #     cost += layer.cost(self.y,self.mini_batch_size)
         # for output,layerName in self.output:
@@ -452,31 +450,39 @@ class Network(object):
                 self.y:
                 training_y[i*self.mini_batch_size: (i+1)*self.mini_batch_size]
             }
-            ,on_unused_input='ignore'
+            ,on_unused_input='ignore',
+            name='training_func'
         )
         # theano.printing.debugprint(train_mb)
         # theano.printing.pydotprint(train_mb,outfile='graph.png',format='png')
+
         validate_mb_accuracy = theano.function(
             [i],
-            # self.layers[-1].accuracy(self.y),
-            accuracy,
+            # [self.outputLayers[-1].accuracy(self.y)],
+            # [cost],
+            [accuracy],
             givens={
                 self.x:
                 validation_x[i*self.mini_batch_size: (i+1)*self.mini_batch_size],
                 self.y:
                 validation_y[i*self.mini_batch_size: (i+1)*self.mini_batch_size]
-            },on_unused_input='ignore')
+            },on_unused_input='ignore'
+        ,name='validation accuracy function')
 
         test_mb_accuracy = theano.function(
             [i],
-            # self.layers[-1].accuracy(self.y),
-            accuracy,
+            # self.outputLayers[-1].accuracy(self.y),
+            # [cost],
+            [accuracy],
             givens={
                 self.x:
                 test_x[i*self.mini_batch_size: (i+1)*self.mini_batch_size],
                 self.y:
                 test_y[i*self.mini_batch_size: (i+1)*self.mini_batch_size]
-            },on_unused_input='ignore')
+            },on_unused_input='ignore',
+        name='test accuracy function'
+        )
+        '''
         test_mb_predictions = theano.function(
             [i], # self.layers[-1].accuracy(self.y),
             [layer.output for layer in self.outputLayers],
@@ -487,8 +493,9 @@ class Network(object):
             givens={
                 self.x:
                 test_x[i*self.mini_batch_size: (i+1)*self.mini_batch_size]
-            },on_unused_input='ignore')
-
+            },on_unused_input='ignore'
+        ,name='test predictions function')
+        '''
 
         # Do the actual training
         best_validation_accuracy = 0.0
