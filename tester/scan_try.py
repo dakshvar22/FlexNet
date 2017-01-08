@@ -62,7 +62,7 @@ final,updates = theano.scan(step2,sequences=[sequence_input_shuffled,T.arange(0,
 # final = step2(sequence_input_shuffled[-1])
 # print components.shape.eval()
 cost = T.mean(final[-1])
-gr = T.grad(cost, w)
+gr = T.grad(cost, w2)
 # print 'input',a.eval()
 # print 'weights',w.eval()
 # print 'result',components.eval()

@@ -235,7 +235,7 @@ class Network(object):
         #         connection.recurrentHiddenState = connection.fromLayer.output
         #         connection.feedForward(self.mini_batch_size)
         #
-        ''' this is wrong - return the output of all those layers which have are around the corner in time varying layers(see example)'''
+        ''' this is wrong - return the output of all those layers which are around the corner in time varying layers(see example)'''
         # return self.timeVariantLayers[-1].output
         return [layer.output for layer in self.outputLayers]
 
@@ -416,15 +416,20 @@ class Network(object):
         # for output,layerName in self.output:
         #     cost += self.layer_by_name[layerName].cost(self.y,output,self.mini_batch_size)
         # print self.output
-        cost = negativeLogLikelihood(self.output[0],self.y) + negativeLogLikelihood(self.output[1],self.y)
-        # y_out = T.argmax(self.output[-1],axis=1)
-        # accuracy = T.mean(T.eq(y_out,self.y))
-        accuracy = 0.0
+        # cost = negativeLogLikelihood(self.output[0],self.y) + negativeLogLikelihood(self.output[1],self.y)
+        cost = negativeLogLikelihood(self.output,self.y)
+
+        y_out = T.argmax(self.output,axis=1)
+        accuracy = T.mean(T.eq(y_out,self.y))
+
+        '''accuracy = 0.0
         for layer in self.outputLayers:
             accuracy += layer.accuracy(self.y)
         accuracy /= len(self.outputLayers)
+        '''
+        # accuracy = self.outputLayers[0].accuracy(self.y)
 
-        grads = T.grad(cost, self.params)
+        grads = T.grad(cost, self.params,disconnected_inputs='warn')
         updates = [(param, param-eta*grad)
                    for param, grad in zip(self.params, grads)]
         # print type(updates)
@@ -447,11 +452,11 @@ class Network(object):
                 self.y:
                 training_y[i*self.mini_batch_size: (i+1)*self.mini_batch_size]
             }
-            # ,on_unused_input='ignore'
+            ,on_unused_input='ignore'
         )
-
+        # theano.printing.debugprint(train_mb)
         # theano.printing.pydotprint(train_mb,outfile='graph.png',format='png')
-        '''validate_mb_accuracy = theano.function(
+        validate_mb_accuracy = theano.function(
             [i],
             # self.layers[-1].accuracy(self.y),
             accuracy,
@@ -484,7 +489,7 @@ class Network(object):
                 test_x[i*self.mini_batch_size: (i+1)*self.mini_batch_size]
             },on_unused_input='ignore')
 
-        '''
+
         # Do the actual training
         best_validation_accuracy = 0.0
         '''
@@ -501,7 +506,7 @@ class Network(object):
                 if iteration % 1000 == 0:
                     print("Training mini-batch number {0}".format(iteration))
                 cost_ij = train_mb(minibatch_index)
-                '''if (iteration+1) % num_training_batches == 0:
+                if (iteration+1) % num_training_batches == 0:
                     validation_accuracy = np.mean(
                         [validate_mb_accuracy(j) for j in range(num_validation_batches)])
                     print("Epoch {0}: validation accuracy {1:.2%}".format(
@@ -537,7 +542,7 @@ class Network(object):
                             print('The corresponding test accuracy is {0:.2%}'.format(
                                 test_accuracy))
 
-                    '''
+
             print time.time() - tic
         print("Finished training network.")
         print("Best validation accuracy of {0:.2%} obtained at iteration {1}".format(

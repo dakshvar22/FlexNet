@@ -368,7 +368,7 @@ def shallow(epochs=5):
     l1 = InputLayer(inputShape = (196,), sequence_length=4)
     l2 = ActivationLayer(inputShape=(300,), passFunction='sigmoid')
     l5 = ActivationLayer(inputShape=(150,), passFunction='sigmoid')
-    l6 = ActivationLayer(inputShape=(10,), passFunction='softmax',ifOutput=True,lossFunction="negativeLogLikelihood")
+    # l6 = ActivationLayer(inputShape=(10,), passFunction='softmax',ifOutput=True,lossFunction="negativeLogLikelihood")
     l3 = ActivationLayer(inputShape=(100,), passFunction='sigmoid')
     l4 = ActivationLayer(inputShape=(10,), passFunction='softmax',ifOutput=True,lossFunction="negativeLogLikelihood")
 
@@ -376,7 +376,7 @@ def shallow(epochs=5):
     # net.connectOneToOne(l1,l2)
     # net.connectDense(l2,l2)
     net.connectRecurrent(l5,l2)
-    net.connectDense(l5,l6)
+    # net.connectDense(l5,l6)
     net.connectDense(l2,l5,return_sequence=True)
     net.connectDense(l5,l3)
     net.connectDense(l3,l4)

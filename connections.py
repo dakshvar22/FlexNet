@@ -70,7 +70,7 @@ class OneToOneConnection(Connection):
         self.w = theano.shared(
                     np.asarray(
                         np.ones(shape= (1,self.fromLayer.numOfNeurons)),
-                        dtype=theano.config.floatX), name='w', borrow=True,broadcastable=(True,False))
+                        dtype=theano.config.floatX), name=self.fromLayer.name + '-' + self.toLayer.name + '-w', borrow=True,broadcastable=(True,False))
 
         # COMMENT THE BELOW LINE IF YOU DO NOT WANT TO LEARN O2O connection WEIGHTS!
         self.params.append(self.w)
@@ -96,11 +96,11 @@ class DenseConnection(Connection):
                 np.random.normal(loc=0.0, scale=np.sqrt(1.0/self.toLayer.numOfNeurons),
                                  size=(self.fromLayer.numOfNeurons,self.targetNeurons)),
                 dtype=theano.config.floatX),
-            name='w', borrow=True)
+            name=self.fromLayer.name + '-' + self.toLayer.name + '-w', borrow=True)
         self.b = theano.shared(
             np.asarray(np.random.normal(loc=0.0, scale=1.0, size=(1,self.targetNeurons)),
                        dtype=theano.config.floatX),
-            name='b', borrow=True,broadcastable=(True,False))
+            name=self.fromLayer.name + '-' + self.toLayer.name + '-b', borrow=True,broadcastable=(True,False))
 
         self.params = [self.w, self.b]
 
@@ -139,9 +139,9 @@ class ConvolutedConnection(Connection):
         self.w = theano.shared(
             np.asarray(
                 np.random.normal(loc=0.0, size=self.filter_shape),
-                dtype=theano.config.floatX),name='w', borrow=True)
+                dtype=theano.config.floatX),name=self.fromLayer.name + '-' + self.toLayer.name + '-w', borrow=True)
         self.b = theano.shared(np.asarray(np.random.normal(loc=0.0, scale=1.0, size=(self.filter_shape[0],)),
-                       dtype=theano.config.floatX), name='b', borrow=True)
+                       dtype=theano.config.floatX), name=self.fromLayer.name + '-' + self.toLayer.name + '-b', borrow=True)
 
         self.params = [self.w,self.b]
 
@@ -241,11 +241,11 @@ class RecurrentConnection(Connection):
                 np.random.normal(loc=0.0, scale=np.sqrt(1.0/self.toLayer.numOfNeurons),
                                  size=(self.fromLayer.numOfNeurons,self.targetNeurons)),
                 dtype=theano.config.floatX),
-            name='w', borrow=True)
+            name=self.fromLayer.name + '-' + self.toLayer.name + '-w', borrow=True)
         self.b = theano.shared(
             np.asarray(np.random.normal(loc=0.0, scale=1.0, size=(1,self.targetNeurons)),
                        dtype=theano.config.floatX),
-            name='b', borrow=True,broadcastable=(True,False))
+            name=self.fromLayer.name + '-' + self.toLayer.name + '-b', borrow=True,broadcastable=(True,False))
 
         self.recurrentHiddenState = self.fromLayer.output
         self.params = [self.w, self.b]
