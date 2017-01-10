@@ -140,7 +140,7 @@ class Layer(object):
         to form the input for this layer, followed by an activation function on this total input
         :return:
         '''
-        print self.name
+        # print self.name
         ### compute shape Tuples(Hack :( )
         self.computeShapes(minibatchSize)
 
@@ -178,20 +178,20 @@ class Layer(object):
 
 
     def cost(self, y
-             # ,predict_y
+             ,predict_y
              , size):
         "Return the log-likelihood cost."
         # Only supports 1D output
         # self.output = self.output.reshape((size, self.numOfNeurons))
-        # predict_y = predict_y.reshape((size,self.numOfNeurons))
+        predict_y = predict_y.reshape((size,self.numOfNeurons))
         # return -T.mean(T.log(self.output)[T.arange(size), y])
         # return self.lossFunction(predict_y,y)
-        return self.lossFunction(self.output,y)
+        return self.lossFunction(predict_y,y)
         # return -T.mean(y * T.log(self.output) + (1-y) * T.log(1 - self.output))
 
-    def accuracy(self, y):
+    def accuracy(self, predict_y,y):
         "Return the accuracy for the mini-batch."
-        self.y_out = T.argmax(self.output, axis=1)
+        self.y_out = T.argmax(predict_y, axis=1)
         return T.mean(T.eq(y, self.y_out))
 
     def getPassFunction(self,passFunction):

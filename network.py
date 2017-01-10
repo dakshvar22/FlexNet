@@ -224,62 +224,26 @@ class Network(object):
                 # Defining the input and output for each layer
                 layer.run(self.mini_batch_size)
 
-        # Update the hidden states of the recurrent connection with the new updated output of fromLayer and run
-        # feedForward so that output variable of that connection gets updated
-
-        # ''' Check if this correct over here for time varying case'''
-        # for connection in self.connections:
-        #     if isinstance(connection,RecurrentConnection):
-        #         connection.recurrentHiddenState = connection.fromLayer.output
-        #         connection.feedForward(self.mini_batch_size)
-        #
-        ''' this is wrong - return the output of all those layers which are around the corner in time varying layers(see example)'''
+        ''' this is wrong - return the output of all those layers which are around the
+        corner in time varying layers(see example)'''
         # return self.timeVariantLayers[-1].output
         return [layer.output for layer in self.outputLayers]
 
     def step(self,x):
         # Define the feedforward equations for each layer
+        print 'inside step'
         for layer in self.layers:
             if isinstance(layer,InputLayer):
                 layer.firstLayerRun(x,self.mini_batch_size)
             else:
                 # Defining the input and output for each layer
+                print layer.name
                 layer.run(self.mini_batch_size)
 
-        # Update the hidden states of the recurrent connection with the new updated output of fromLayer and run
-        # feedForward so that output variable of that connection gets updated
-
-        # ''' Check if this correct over here for time varying case'''
-        # for connection in self.connections:
-        #     if isinstance(connection,RecurrentConnection):
-        #         connection.recurrentHiddenState = connection.fromLayer.output
-        #         connection.feedForward(self.mini_batch_size)
-        #
-        # # return [(layer.output,layer.name) for layer in self.outputLayers]
         return [layer.output for layer in self.outputLayers]
 
     def step2(self,x,idx):
-        # Define the feedforward equations for each layer
-        # for layer in self.layers:
-        #     if T.lt(idx,self.sequence_length-1):
-        #         # if index is less that N
-        #         if layer in self.timeVariantLayers:
-        #             if isinstance(layer,InputLayer):
-        #                 layer.firstLayerRun(x,self.mini_batch_size)
-        #             else:
-        #                 # Defining the input and output for each layer
-        #                 layer.run(self.mini_batch_size)
-        #         else:
-        #             continue
-        #     else:
-        #         # if this is last time step
-        #         print 'came here'
-        #         if isinstance(layer,InputLayer):
-        #             layer.firstLayerRun(x,self.mini_batch_size)
-        #         else:
-        #             # Defining the input and output for each layer
-        #             layer.run(self.mini_batch_size)
-        # print self.sequence_length
+
         t = T.switch(T.lt(idx,self.sequence_length-1),self.timeVariationalStep(x),self.step(x))
 
         # Update the hidden states of the recurrent connection with the new updated output of fromLayer and run
@@ -331,9 +295,9 @@ class Network(object):
         # Symbolic theano variable for the input matrix to the network
         inputLen = len(self.inputLayer.shape)
         if self.sequence_length == 1:
-            self.x = T.TensorType('float64',(False,)*(inputLen + 1))()
+            self.x = T.TensorType('float64',(False,)*(inputLen + 1),name='inputMatrix')()
         else:
-            self.x = T.TensorType('float64',(False,)*(inputLen + 2))()
+            self.x = T.TensorType('float64',(False,)*(inputLen + 2),name='inputMatrix')()
 
         # print self.x.ndim
 
@@ -360,16 +324,20 @@ class Network(object):
         #     self.output = self.step(self.x_shuffled[-1:],self.output_r)[0]
         # else:
         #     self.output = self.step(self.x)[0]
-        shuffledList = [x for x in range(inputLen+2)]
-        shuffledList[0],shuffledList[1] = 1,0
-        x_shuffled = self.x.dimshuffle(tuple(shuffledList))
+        if self.sequence_length > 1:
+            shuffledList = [x for x in range(inputLen+2)]
+            shuffledList[0],shuffledList[1] = 1,0
+            x_shuffled = self.x.dimshuffle(tuple(shuffledList))
 
-        output, self.scan_updates = theano.scan(self.step2,
-                                           sequences=[x_shuffled,T.arange(x_shuffled.shape[0])]
-                                             # ,non_sequences=self.timeVariantLayers
-                                             ,outputs_info=None
-                                            # ,n_steps=self.sequence_length-1
-                                             )
+            output, self.scan_updates = theano.scan(self.step2,
+                                               sequences=[x_shuffled,T.arange(x_shuffled.shape[0])]
+                                                 # ,non_sequences=self.timeVariantLayers
+                                                 ,outputs_info=None
+                                                # ,n_steps=self.sequence_length-1
+                                                 )
+            self.output = output[-1]
+        else:
+            self.output = self.step(self.x)
         # print type(self.scan_updates)
         # timeFunctionCall = theano.function([],[output],updates=scan_updates)
         # out = timeFunctionCall()
@@ -377,8 +345,11 @@ class Network(object):
 
         # Aggregate all parameters of the network(Used for updation during backpropagation)
         self.params = [param for connection in self.connections for param in connection.params]
-        self.output = output[-1]
+
         # self.output = self.outputLayer.output
+
+    def computeCost(self,idx,output):
+        return self.outputLayers[idx].cost(output,self.mini_batch_size)
 
     def fit(self, training_data, epochs, eta,
             validation_data, test_data, lmbda=0.0):
@@ -406,25 +377,36 @@ class Network(object):
         print('batch sizes')
         print(num_training_batches,num_validation_batches,num_test_batches)
 
-        self.y = T.ivector("y")
+        self.y = T.ivector('ground truth')
+
         # define the (regularized) cost function, symbolic gradients, and updates
-        # cost = 0.0
-        # for layer in self.outputLayers:
-        #     cost += layer.cost(self.y,self.mini_batch_size)
+        # costs,updates = theano.scan(self.computeCost,
+        #                             sequences=T.arange(len(self.outputLayers)),
+        #                             non_sequences=self.y)
+        # cost = T.sum([layer.cost(self.y,self.mini_batch_size) for layer in self.outputLayers])
+        # cost = T.sum(costs)
+        cost = 0.0
+        # cost = self.outputLayers[0].cost(self.y,self.mini_batch_size) + self.outputLayers[1].cost(self.y,self.mini_batch_size)
+        for ind,layer in enumerate(self.outputLayers):
+            cost += layer.cost(self.y,self.output[ind],self.mini_batch_size)
         # for output,layerName in self.output:
-        #     cost += self.layer_by_name[layerName].cost(self.y,output,self.mini_batch_size)
+        #     cost += self.layer_by_name[layerName].cost(self.y,self.mini_batch_size)
         # print self.output
-        # cost = negativeLogLikelihood(self.output[0],self.y) + negativeLogLikelihood(self.output[1],self.y)
-        cost = negativeLogLikelihood(self.output,self.y)
+        # cost += self.outputLayers[0].lossFunction(self.output[0],self.y) + \
+        #        self.outputLayers[1].lossFunction(self.output[1],self.y)
+        # cost = self.outputLayers[1].lossFunction(self.outputLayers[1].output,self.y)
+        # cost = negativeLogLikelihood(self.output,self.y)
 
-        y_out = T.argmax(self.output,axis=1)
-        accuracy = T.mean(T.eq(y_out,self.y))
-
-        '''accuracy = 0.0
-        for layer in self.outputLayers:
-            accuracy += layer.accuracy(self.y)
+        # y_out = T.argmax(self.output,axis=1)
+        # accuracy = T.mean(T.eq(y_out,self.y))
+        # theano.printing.debugprint(cost)
+        theano.printing.pydotprint(cost,outfile='graph_correct.png',format='png')
+        theano.printing.pydotprint(self.output,outfile='graph_output.png',format='png')
+        accuracy = 0.0
+        for ind,layer in enumerate(self.outputLayers):
+            accuracy += layer.accuracy(self.output[ind],self.y)
         accuracy /= len(self.outputLayers)
-        '''
+
         # accuracy = self.outputLayers[0].accuracy(self.y)
 
         grads = T.grad(cost, self.params,disconnected_inputs='warn')
@@ -443,7 +425,7 @@ class Network(object):
             # mode=theano.compile.MonitorMode(
             #             pre_func=inspect_inputs,
             #             post_func=inspect_outputs),
-            updates=updates + self.scan_updates,
+            updates=updates,
             givens={
                 self.x:
                 training_x[i*self.mini_batch_size: (i+1)*self.mini_batch_size],
