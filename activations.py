@@ -24,7 +24,8 @@ def softmax(z):
     # total = T.sum(expz)
     # print total
     # return (expz / total)
-    return T.clip(T.nnet.softmax(z),epsilon,1.0-epsilon)
+    # return T.clip(T.nnet.softmax(z),epsilon,1.0-epsilon)
+    return T.nnet.softmax(z)
     # return T.nnet.logsoftmax(z)
     # return T.max(x, axis=axis, keepdims=keepdims)
 

@@ -2,7 +2,7 @@ __author__ = 'daksh'
 
 import os
 # os.environ["THEANO_FLAGS"] = "ldflags = -L/usr/local/lib -lopenblas,device=gpu,floatX=float32,exception_verbosity=high,fastmath = True,root = /usr/local/cuda-7.5,flags=-D_FORCE_INLINES,cnmem=0.85"
-os.environ["THEANO_FLAGS"] = "exception_verbosity=high , optimizer=None"
+os.environ["THEANO_FLAGS"] = "exception_verbosity=high , optimizer=None , optimizer_excluding=fusion:inplace"
 import theano
 import theano.tensor as T
 import numpy as np
@@ -390,8 +390,6 @@ def shallow(epochs=5):
     print end - start
 
     return net
-
-
 
 #### Load the MNIST data
 def load_data_shared(filename="../data/mnist.pkl.gz"):

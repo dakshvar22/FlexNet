@@ -9,6 +9,7 @@ import math
 import cPickle
 import time
 from theano.ifelse import ifelse
+import theano.d3viz as d3v
 
 class Network(object):
 
@@ -285,6 +286,7 @@ class Network(object):
         for layer in self.layers:
             layer.initializeInputOutput(mini_batch_size)
             # Also check the sequence length which is default to 1.
+            # If different sequence length in multiple input layers, then this code will have to be changed
             if isinstance(layer,InputLayer):
                 self.inputLayer = layer
                 self.sequence_length = layer.sequence_length
@@ -386,9 +388,19 @@ class Network(object):
         # cost = T.sum([layer.cost(self.y,self.mini_batch_size) for layer in self.outputLayers])
         # cost = T.sum(costs)
         cost = 0.0
+        # print type(self.output)
         # cost = self.outputLayers[0].cost(self.y,self.mini_batch_size) + self.outputLayers[1].cost(self.y,self.mini_batch_size)
+
+        # if isinstance(self.output,list):
+        #     for ind,layer in enumerate(self.outputLayers):
+        #         cost += layer.cost(self.y,self.output[ind],self.mini_batch_size)
+        # else:
+        #     print 'came here'
+        #     cost += self.outputLayers[0].cost(self.y,self.output,self.mini_batch_size)
+
         for ind,layer in enumerate(self.outputLayers):
             cost += layer.cost(self.y,self.output[ind],self.mini_batch_size)
+
         # for output,layerName in self.output:
         #     cost += self.layer_by_name[layerName].cost(self.y,self.mini_batch_size)
         # print self.output
@@ -400,9 +412,21 @@ class Network(object):
         # y_out = T.argmax(self.output,axis=1)
         # accuracy = T.mean(T.eq(y_out,self.y))
         # theano.printing.debugprint(cost)
-        theano.printing.pydotprint(cost,outfile='graph_correct.png',format='png')
-        theano.printing.pydotprint(self.output,outfile='graph_output.png',format='png')
+        theano.printing.pydotprint(cost,outfile='pics/graph_correct.png',format='png',var_with_name_simple=True)
+        theano.printing.pydotprint(self.output,outfile='pics/graph_output.png',format='png',var_with_name_simple=True)
+        theano.printing.pydotprint(self.outputLayers[0].output,outfile='pics/graph_output_outputLayer.png',format='png',var_with_name_simple=True)
+
+        # d3v.d3viz(self.outputLayers[0].output,'pics/output_interactive.html')
+
         accuracy = 0.0
+
+        # if isinstance(self.output,list):
+        #     for ind,layer in enumerate(self.outputLayers):
+        #         accuracy += layer.accuracy(self.output[ind],self.y)
+        #     accuracy /= len(self.outputLayers)
+        # else:
+        #     accuracy = self.outputLayers[0].accuracy(self.output,self.y)
+
         for ind,layer in enumerate(self.outputLayers):
             accuracy += layer.accuracy(self.output[ind],self.y)
         accuracy /= len(self.outputLayers)
