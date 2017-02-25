@@ -248,6 +248,8 @@ class RecurrentConnection(Connection):
             name=self.fromLayer.name + '-' + self.toLayer.name + '-b', borrow=True,broadcastable=(True,False))
 
         self.recurrentHiddenState = self.fromLayer.output
+        self.recurrentHiddenOutput = T.zeros_like(self.toLayer.input)
+
         self.params = [self.w, self.b]
 
     def feedForward(self,miniBatchSize):

@@ -238,7 +238,7 @@ class Network(object):
                 layer.firstLayerRun(x,self.mini_batch_size)
             else:
                 # Defining the input and output for each layer
-                print layer.name
+                # print layer.name
                 layer.run(self.mini_batch_size)
 
         return [layer.output for layer in self.outputLayers]
@@ -293,6 +293,9 @@ class Network(object):
             # Assigning the output layer object of the network to the appropriate layer
             if layer.ifOutput:
                 self.outputLayers.append(layer)
+        #
+        # for i in self.layers:
+        #     print i.input,i.output
 
         # Symbolic theano variable for the input matrix to the network
         inputLen = len(self.inputLayer.shape)
@@ -309,6 +312,8 @@ class Network(object):
 
             # if the connection is of type Recurrent, then run feedForward once to initialize the hidden state of
             # that connection
+
+            # This no longer needed since we have initialized recurrentHiddenOutput variable to zeros
             if isinstance(connection,RecurrentConnection):
                 connection.feedForward(mini_batch_size)
 
@@ -334,7 +339,8 @@ class Network(object):
             output, self.scan_updates = theano.scan(self.step2,
                                                sequences=[x_shuffled,T.arange(x_shuffled.shape[0])]
                                                  # ,non_sequences=self.timeVariantLayers
-                                                 ,outputs_info=None
+                                                 ,outputs_info=None,
+                                                    # truncate_gradient = 0
                                                 # ,n_steps=self.sequence_length-1
                                                  )
             self.output = output[-1]
@@ -401,6 +407,10 @@ class Network(object):
         for ind,layer in enumerate(self.outputLayers):
             cost += layer.cost(self.y,self.output[ind],self.mini_batch_size)
 
+        # cost = self.outputLayers[0].cost(self.y,self.output[0],self.mini_batch_size) \
+        #        + self.outputLayers[1].cost(self.y,self.output[1],self.mini_batch_size)
+
+        cost_printed = theano.printing.Print('Cost val = ')(cost)
         # for output,layerName in self.output:
         #     cost += self.layer_by_name[layerName].cost(self.y,self.mini_batch_size)
         # print self.output
@@ -433,7 +443,7 @@ class Network(object):
 
         # accuracy = self.outputLayers[0].accuracy(self.y)
 
-        grads = T.grad(cost, self.params,disconnected_inputs='warn')
+        grads = T.grad(cost, self.params, disconnected_inputs='warn')
         updates = [(param, param-eta*grad)
                    for param, grad in zip(self.params, grads)]
         # print type(updates)

@@ -174,7 +174,8 @@ class Layer(object):
         self.output = self.passFunction(self.input)
 
         # Add dropout
-        self.addDropout()
+        if self.dropout > 0.:
+            self.addDropout()
 
 
     def cost(self, y
@@ -187,6 +188,7 @@ class Layer(object):
         # return -T.mean(T.log(self.output)[T.arange(size), y])
         # return self.lossFunction(predict_y,y)
         return self.lossFunction(predict_y,y)
+        # return self.lossFunction(self.output,y)
         # return -T.mean(y * T.log(self.output) + (1-y) * T.log(1 - self.output))
 
     def accuracy(self, predict_y,y):
@@ -319,6 +321,7 @@ class MemoryLayer(Layer):
         '''
         self.output += self.passFunction(self.input)
 
-        self.addDropout()
+        if self.dropout > 0.:
+            self.addDropout()
 
         self.y_out = T.argmax(self.output, axis=1)

@@ -2,7 +2,7 @@ __author__ = 'daksh'
 
 import os
 # os.environ["THEANO_FLAGS"] = "ldflags = -L/usr/local/lib -lopenblas,device=gpu,floatX=float32,exception_verbosity=high,fastmath = True,root = /usr/local/cuda-7.5,flags=-D_FORCE_INLINES,cnmem=0.85"
-os.environ["THEANO_FLAGS"] = "exception_verbosity=high , optimizer=None , optimizer_excluding=fusion:inplace"
+os.environ["THEANO_FLAGS"] = "exception_verbosity=high"
 import theano
 import theano.tensor as T
 import numpy as np
@@ -367,19 +367,24 @@ def shallow(epochs=5):
     net = Network('Check Multiple Output')
     l1 = InputLayer(inputShape = (196,), sequence_length=4)
     l2 = ActivationLayer(inputShape=(300,), passFunction='sigmoid')
-    l5 = ActivationLayer(inputShape=(150,), passFunction='sigmoid')
-    l6 = ActivationLayer(inputShape=(10,), passFunction='softmax',ifOutput=True,lossFunction="negativeLogLikelihood")
-    l3 = ActivationLayer(inputShape=(100,), passFunction='sigmoid')
+    l3 = ActivationLayer(inputShape=(150,), passFunction='sigmoid')
     l4 = ActivationLayer(inputShape=(10,), passFunction='softmax',ifOutput=True,lossFunction="negativeLogLikelihood")
+    l5 = ActivationLayer(inputShape=(100,), passFunction='sigmoid')
+    l6 = ActivationLayer(inputShape=(10,), passFunction='softmax',ifOutput=True,lossFunction="negativeLogLikelihood")
+    l7 = ActivationLayer(inputShape=(50,), passFunction='sigmoid')
+    l8 = ActivationLayer(inputShape=(200,), passFunction='sigmoid')
 
-    net.connectDense(l1,l2,return_sequence=True)
+    net.connectDense(l1,l8,return_sequence=True)
+    net.connectDense(l8,l2,return_sequence=True)
     # net.connectOneToOne(l1,l2)
     # net.connectDense(l2,l2)
-    net.connectRecurrent(l5,l2)
-    net.connectDense(l5,l6)
-    net.connectDense(l2,l5)
-    net.connectDense(l5,l3)
+    net.connectRecurrent(l3,l2)
+    net.connectDense(l2,l3, return_sequence=True)
     net.connectDense(l3,l4)
+    net.connectDense(l3,l5)
+    net.connectDense(l5,l6)
+    net.connectDense(l8,l7)
+    net.connectDense(l7,l4)
 
     net.compile(mini_batch_size)
     # net.loadParams("../data/weights/Ho Ja Shuru_EpochNum_14_accuracy_92.2475961538")
