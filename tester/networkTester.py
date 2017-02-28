@@ -2,7 +2,7 @@ __author__ = 'daksh'
 
 import os
 # os.environ["THEANO_FLAGS"] = "ldflags = -L/usr/local/lib -lopenblas,device=gpu,floatX=float32,exception_verbosity=high,fastmath = True,root = /usr/local/cuda-7.5,flags=-D_FORCE_INLINES,cnmem=0.85"
-os.environ["THEANO_FLAGS"] = "exception_verbosity=high,device=cpu,floatX=float64"
+os.environ["THEANO_FLAGS"] = "exception_verbosity=high,device=cpu,floatX=float32"
 import theano
 import theano.tensor as T
 import numpy as np
@@ -301,12 +301,13 @@ def shallow(epochs=5):
         validation_data, test_data)
     '''
 
+    '''
     net = Network('Ho Ja Shuru')
-    l1 = InputLayer(inputShape = (784,1))
-    l2 = ActivationLayer(inputShape=(700,1),passFunction='sigmoid')
-    l5 = ActivationLayer(inputShape=(200,1),passFunction='sigmoid')
-    l3 = ActivationLayer(inputShape=(100,1),passFunction='sigmoid')
-    l4 = ActivationLayer(inputShape=(10,1),passFunction='softmax',ifOutput=True,lossFunction="negativeLogLikelihood")
+    l1 = InputLayer(inputShape = (196,))
+    l2 = ActivationLayer(inputShape=(700,),passFunction='sigmoid')
+    l5 = ActivationLayer(inputShape=(200,),passFunction='sigmoid')
+    l3 = ActivationLayer(inputShape=(100,),passFunction='sigmoid')
+    l4 = ActivationLayer(inputShape=(10,),passFunction='softmax',ifOutput=True,lossFunction="negativeLogLikelihood")
 
     net.connectDense(l1,l2)
     # net.connectOneToOne(l1,l2)
@@ -322,6 +323,7 @@ def shallow(epochs=5):
     print end - start
 
     return net
+    '''
 
     '''
     net = Network('Check Errors')
@@ -364,6 +366,7 @@ def shallow(epochs=5):
     net.fit(training_data, epochs, 0.1, validation_data, test_data)
     '''
 
+
     net = Network('Check Multiple Output')
     l1 = InputLayer(inputShape = (196,), sequence_length=4)
     l2 = ActivationLayer(inputShape=(300,), passFunction='sigmoid')
@@ -378,7 +381,7 @@ def shallow(epochs=5):
     net.connectDense(l8,l2,return_sequence=True)
     # net.connectOneToOne(l1,l2)
     # net.connectDense(l2,l2)
-    net.connectRecurrent(l3,l2)
+    # net.connectRecurrent(l3,l2)
     net.connectDense(l2,l3, return_sequence=True)
     net.connectDense(l3,l4)
     net.connectDense(l3,l5)
@@ -407,8 +410,8 @@ def load_data_shared(filename="../data/mnist.pkl.gz"):
         the data to the GPU, if one is available.
         """
         shared_x = theano.shared(
-            # np.asarray(data[0].reshape(data[0].shape[0],data[0].shape[1]/196,data[0].shape[1]/4), dtype=theano.config.floatX), borrow=True)
-            np.asarray(data[0], dtype=theano.config.floatX), borrow=True)
+            np.asarray(data[0].reshape(data[0].shape[0],data[0].shape[1]/196,data[0].shape[1]/4), dtype=theano.config.floatX), borrow=True)
+            # np.asarray(data[0], dtype=theano.config.floatX), borrow=True)
         shared_y = theano.shared(
             np.asarray(data[1], dtype=theano.config.floatX), borrow=True)
         return shared_x, T.cast(shared_y, "int32")

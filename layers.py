@@ -271,7 +271,7 @@ class InputLayer(Layer):
     def firstLayerRun(self, input, minibatchSize):
         ### compute shape Tuples(Hack :( )
         self.computeShapes(minibatchSize)
-        input = input.reshape(self.shape_minibatch_flattened)
+        self.input = theano.printing.Print('Input Val for layer ' + self.name + '=')(input.reshape(self.shape_minibatch_flattened))
         self.output = theano.printing.Print('Output Val for layer ' + self.name + '=')(self.passFunction(self.input))
 
 class ActivationLayer(Layer):

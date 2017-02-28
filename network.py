@@ -246,8 +246,9 @@ class Network(object):
 
     def step2(self,x,idx):
 
+        # print self.sequence_length-1
         t = T.switch(T.lt(idx,self.sequence_length-1),self.timeVariationalStep(x),self.step(x))
-
+        #t = theano.ifelse.ifelse(T.lt(idx,self.sequence_length-1),self.timeVariationalStep(x),self.step(x))
         # Update the hidden states of the recurrent connection with the new updated output of fromLayer and run
         # feedForward so that output variable of that connection gets updated
 
@@ -290,6 +291,7 @@ class Network(object):
             # If different sequence length in multiple input layers, then this code will have to be changed
             if isinstance(layer,InputLayer):
                 self.inputLayer = layer
+                #print layer.input, layer.output
                 self.sequence_length = layer.sequence_length
             # Assigning the output layer object of the network to the appropriate layer
             if layer.ifOutput:
@@ -300,10 +302,12 @@ class Network(object):
 
         # Symbolic theano variable for the input matrix to the network
         inputLen = len(self.inputLayer.shape)
-        if self.sequence_length == 1:
-            self.x = T.TensorType('float64',(False,)*(inputLen + 1),name='inputMatrix')()
+        # print self.sequence_length,'hell'
+        if (self.sequence_length == 1):
+            self.x = T.TensorType(theano.config.floatX,(False,)*(inputLen + 1))()
         else:
-            self.x = T.TensorType('float64',(False,)*(inputLen + 2),name='inputMatrix')()
+            self.x = T.TensorType(theano.config.floatX,(False,)*(inputLen + 2),name='inputMatrix')()
+        print self.x.type()
 
         # print self.x.ndim
 
@@ -463,7 +467,7 @@ class Network(object):
             updates=updates,
             givens={
                 self.x:
-                training_x[i*self.mini_batch_size: (i+1)*self.mini_batch_size],
+                training_x[i*self.mini_batch_size: (i+1)*self.mini_batch_size] ,
                 self.y:
                 training_y[i*self.mini_batch_size: (i+1)*self.mini_batch_size]
             }
