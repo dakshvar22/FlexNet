@@ -235,6 +235,7 @@ class Network(object):
         print 'inside step'
         for layer in self.layers:
             if isinstance(layer,InputLayer):
+                print "inputLayer also present"
                 layer.firstLayerRun(x,self.mini_batch_size)
             else:
                 # Defining the input and output for each layer
@@ -278,7 +279,7 @@ class Network(object):
         self.timeVariantLayers = self.getTimeVariantLayers()
         for i in self.timeVariantLayers:
             print i.name
-        print 'done'
+        print 'printed timeVariantLayers'
 
         self.mini_batch_size = mini_batch_size
 
@@ -529,6 +530,7 @@ class Network(object):
                 if iteration % 1000 == 0:
                     print("Training mini-batch number {0}".format(iteration))
                 cost_ij = train_mb(minibatch_index)
+                print 'minibatch ended'
                 if (iteration+1) % num_training_batches == 0:
                     validation_accuracy = np.mean(
                         [validate_mb_accuracy(j) for j in range(num_validation_batches)])

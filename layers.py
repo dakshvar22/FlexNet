@@ -171,7 +171,7 @@ class Layer(object):
         else:
             self.output = self.passFunction(self.input)
         '''
-        self.output = self.passFunction(self.input)
+        self.output = theano.printing.Print('Output Val for layer ' + self.name + '=')(self.passFunction(self.input))
 
         # Add dropout
         if self.dropout > 0.:
@@ -272,7 +272,7 @@ class InputLayer(Layer):
         ### compute shape Tuples(Hack :( )
         self.computeShapes(minibatchSize)
         input = input.reshape(self.shape_minibatch_flattened)
-        self.output = self.passFunction(input)
+        self.output = theano.printing.Print('Output Val for layer ' + self.name + '=')(self.passFunction(self.input))
 
 class ActivationLayer(Layer):
 

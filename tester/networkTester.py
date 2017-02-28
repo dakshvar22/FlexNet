@@ -2,7 +2,7 @@ __author__ = 'daksh'
 
 import os
 # os.environ["THEANO_FLAGS"] = "ldflags = -L/usr/local/lib -lopenblas,device=gpu,floatX=float32,exception_verbosity=high,fastmath = True,root = /usr/local/cuda-7.5,flags=-D_FORCE_INLINES,cnmem=0.85"
-os.environ["THEANO_FLAGS"] = "exception_verbosity=high"
+os.environ["THEANO_FLAGS"] = "exception_verbosity=high,device=cpu,floatX=float64"
 import theano
 import theano.tensor as T
 import numpy as np
@@ -301,7 +301,7 @@ def shallow(epochs=5):
         validation_data, test_data)
     '''
 
-    '''net = Network('Ho Ja Shuru')
+    net = Network('Ho Ja Shuru')
     l1 = InputLayer(inputShape = (784,1))
     l2 = ActivationLayer(inputShape=(700,1),passFunction='sigmoid')
     l5 = ActivationLayer(inputShape=(200,1),passFunction='sigmoid')
@@ -321,7 +321,7 @@ def shallow(epochs=5):
     end = time.time()
     print end - start
 
-    return net'''
+    return net
 
     '''
     net = Network('Check Errors')
@@ -407,8 +407,8 @@ def load_data_shared(filename="../data/mnist.pkl.gz"):
         the data to the GPU, if one is available.
         """
         shared_x = theano.shared(
-            np.asarray(data[0].reshape(data[0].shape[0],data[0].shape[1]/196,data[0].shape[1]/4), dtype=theano.config.floatX), borrow=True)
-            # np.asarray(data[0], dtype=theano.config.floatX), borrow=True)
+            # np.asarray(data[0].reshape(data[0].shape[0],data[0].shape[1]/196,data[0].shape[1]/4), dtype=theano.config.floatX), borrow=True)
+            np.asarray(data[0], dtype=theano.config.floatX), borrow=True)
         shared_y = theano.shared(
             np.asarray(data[1], dtype=theano.config.floatX), borrow=True)
         return shared_x, T.cast(shared_y, "int32")
