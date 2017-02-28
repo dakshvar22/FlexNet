@@ -218,7 +218,9 @@ class Network(object):
 
     def timeVariationalStep(self,x):
         # Define the feedforward equations for each layer
+        # print 'inside time step'
         for layer in self.timeVariantLayers:
+            # print layer.name
             if isinstance(layer,InputLayer):
                 layer.firstLayerRun(x,self.mini_batch_size)
             else:
@@ -232,10 +234,11 @@ class Network(object):
 
     def step(self,x):
         # Define the feedforward equations for each layer
-        print 'inside step'
+        # print 'inside step'
         for layer in self.layers:
+            # print layer.name
             if isinstance(layer,InputLayer):
-                print "inputLayer also present"
+                # print "inputLayer also present"
                 layer.firstLayerRun(x,self.mini_batch_size)
             else:
                 # Defining the input and output for each layer
@@ -248,7 +251,7 @@ class Network(object):
 
         # print self.sequence_length-1
         t = T.switch(T.lt(idx,self.sequence_length-1),self.timeVariationalStep(x),self.step(x))
-        #t = theano.ifelse.ifelse(T.lt(idx,self.sequence_length-1),self.timeVariationalStep(x),self.step(x))
+        # t = theano.ifelse.ifelse(T.lt(idx,self.sequence_length-1),self.timeVariationalStep(x),self.step(x))
         # Update the hidden states of the recurrent connection with the new updated output of fromLayer and run
         # feedForward so that output variable of that connection gets updated
 
@@ -269,7 +272,7 @@ class Network(object):
         # Assign names to layers
         self.checkErrors(mini_batch_size)
         self.namingLayers()
-
+        self.namingConnections()
         # Construct a DAG out of the network
         g = constructGraph(self.layers)
 
@@ -304,17 +307,17 @@ class Network(object):
         inputLen = len(self.inputLayer.shape)
         # print self.sequence_length,'hell'
         if (self.sequence_length == 1):
-            self.x = T.TensorType(theano.config.floatX,(False,)*(inputLen + 1))()
+            self.x = T.TensorType(theano.config.floatX,(False,)*(inputLen + 1),name='inputMatrix')()
         else:
             self.x = T.TensorType(theano.config.floatX,(False,)*(inputLen + 2),name='inputMatrix')()
-        print self.x.type()
+        # print self.x.type()
 
         # print self.x.ndim
 
         # For each connection initialize the weights(parameters) of the connection
         for connection in self.connections:
             connection.initializeWeights()
-
+            print connection.name
             # if the connection is of type Recurrent, then run feedForward once to initialize the hidden state of
             # that connection
 
@@ -349,6 +352,7 @@ class Network(object):
                                                 # ,n_steps=self.sequence_length-1
                                                  )
             self.output = output[-1]
+            print 'output dim = ',self.output.ndim
         else:
             self.output = self.step(self.x)
         # print type(self.scan_updates)
@@ -409,8 +413,11 @@ class Network(object):
         #     print 'came here'
         #     cost += self.outputLayers[0].cost(self.y,self.output,self.mini_batch_size)
 
-        for ind,layer in enumerate(self.outputLayers):
-            cost += layer.cost(self.y,self.output[ind],self.mini_batch_size)
+        if len(self.outputLayers) > 1:
+            for ind,layer in enumerate(self.outputLayers):
+                cost += layer.cost(self.y,self.output[ind],self.mini_batch_size)
+        else:
+            cost = self.outputLayers[0].cost(self.y,self.output,self.mini_batch_size)
 
         # cost = self.outputLayers[0].cost(self.y,self.output[0],self.mini_batch_size) \
         #        + self.outputLayers[1].cost(self.y,self.output[1],self.mini_batch_size)
@@ -442,9 +449,12 @@ class Network(object):
         # else:
         #     accuracy = self.outputLayers[0].accuracy(self.output,self.y)
 
-        for ind,layer in enumerate(self.outputLayers):
-            accuracy += layer.accuracy(self.output[ind],self.y)
-        accuracy /= len(self.outputLayers)
+        if len(self.outputLayers) > 1:
+            for ind,layer in enumerate(self.outputLayers):
+                accuracy += layer.accuracy(self.output[ind],self.y)
+            accuracy /= len(self.outputLayers)
+        else:
+            accuracy = self.outputLayers[0].accuracy(self.output,self.y)
 
         # accuracy = self.outputLayers[0].accuracy(self.y)
 
@@ -753,6 +763,24 @@ class Network(object):
     def transform(self, data):
         #transform the dataset if needed
         pass
+
+    def namingConnections(self):
+        self.connection_by_name = dict()
+        # Builds a dictionary of the layers by name.
+        for i, connection in enumerate(self.connections):
+            # Also generates names for each of the layers, if not given already.
+            if not connection.name:
+                #connection numbers removed
+                connection.setName('Layer%d%s+Layer%d%s' %(i+1,str(connection.fromLayer.shape), i+2,str(connection.toLayer.shape)))
+
+                #print connection.name
+                #what if similar shape of the connections
+            # Raise an exception if there is a name clash
+            if self.connection_by_name.has_key(connection.name):
+                raise "connection Name Clash"
+            else:
+                self.connection_by_name[connection.name] = connection
+
 
 def inspect_inputs(i, node, fn):
     print(i, node, "input(s) value(s):", [input[0] for input in fn.inputs])

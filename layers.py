@@ -193,7 +193,10 @@ class Layer(object):
 
     def accuracy(self, predict_y,y):
         "Return the accuracy for the mini-batch."
+
         self.y_out = T.argmax(predict_y, axis=1)
+        # self.y_out = T.argmax(self.output, axis=1)
+
         return T.mean(T.eq(y, self.y_out))
 
     def getPassFunction(self,passFunction):
@@ -271,7 +274,7 @@ class InputLayer(Layer):
     def firstLayerRun(self, input, minibatchSize):
         ### compute shape Tuples(Hack :( )
         self.computeShapes(minibatchSize)
-        self.input = theano.printing.Print('Input Val for layer ' + self.name + '=')(input.reshape(self.shape_minibatch_flattened))
+        self.input = input.reshape(self.shape_minibatch_flattened)
         self.output = theano.printing.Print('Output Val for layer ' + self.name + '=')(self.passFunction(self.input))
 
 class ActivationLayer(Layer):

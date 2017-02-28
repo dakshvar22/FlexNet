@@ -31,6 +31,7 @@ class Connection(object):
         self.initialization = initialization
         self.output = None
         self.params = []
+        self.name = None
         self.targetNeurons = targetNeurons
         self.return_sequence = return_sequence
 
@@ -47,6 +48,8 @@ class Connection(object):
     #     # raise NaadiNotImplementedError(inspect.currentframe().f_code.co_name, str(type(self)))
     #     pass
 
+    def setName(self,name):
+        self.name = name
 
 class OneToOneConnection(Connection):
 
@@ -227,7 +230,6 @@ class RecurrentConnection(Connection):
     def __init__(self, fromLayer, toLayer, regularization=None, initialization=None):
 
         super(RecurrentConnection, self).__init__(fromLayer,toLayer,None,regularization,initialization)
-
         self.targetNeurons = self.toLayer.numOfNeurons
 
     def __str__(self):
@@ -248,7 +250,7 @@ class RecurrentConnection(Connection):
             name=self.fromLayer.name + '-' + self.toLayer.name + '-b', borrow=True,broadcastable=(True,False))
 
         self.recurrentHiddenState = self.fromLayer.output
-        self.recurrentHiddenOutput = T.zeros_like(self.toLayer.input)
+        # self.recurrentHiddenOutput = T.zeros_like(self.toLayer.input)
 
         self.params = [self.w, self.b]
 
