@@ -230,7 +230,8 @@ class Network(object):
         ''' this is wrong - return the output of all those layers which are around the
         corner in time varying layers(see example)'''
         # return self.timeVariantLayers[-1].output
-        return [layer.output for layer in self.outputLayers]
+        # return [layer.output for layer in self.outputLayers]
+        return [self.dummyOutput]
 
     def step(self,x):
         # Define the feedforward equations for each layer
@@ -245,13 +246,15 @@ class Network(object):
                 # print layer.name
                 layer.run(self.mini_batch_size)
 
-        return [layer.output for layer in self.outputLayers]
+        # return [layer.output for layer in self.outputLayers]
+        return [self.dummyOutput]
+
 
     def step2(self,x,idx):
 
         # print self.sequence_length-1
-        t = T.switch(T.lt(idx,self.sequence_length-1),self.timeVariationalStep(x),self.step(x))
-        # t = theano.ifelse.ifelse(T.lt(idx,self.sequence_length-1),self.timeVariationalStep(x),self.step(x))
+        # t = T.switch(T.lt(idx,self.sequence_length-1),self.timeVariationalStep(x),self.step(x))
+        t = theano.ifelse.ifelse(T.lt(idx,self.sequence_length-1),self.timeVariationalStep(x),self.step(x))
         # Update the hidden states of the recurrent connection with the new updated output of fromLayer and run
         # feedForward so that output variable of that connection gets updated
 
@@ -262,7 +265,9 @@ class Network(object):
                 connection.feedForward(self.mini_batch_size)
 
         # return [(layer.output,layer.name) for layer in self.outputLayers]
-        return [layer.output for layer in self.outputLayers]
+        # return [layer.output for layer in self.outputLayers]
+        # return t
+        # return [self.dummyOutput]
 
     def compile(self, mini_batch_size):
         '''
@@ -303,6 +308,9 @@ class Network(object):
         # for i in self.layers:
         #     print i.input,i.output
 
+        # Dummy output variables
+        self.dummyOutput = theano.shared(value=0.0,name='a')
+
         # Symbolic theano variable for the input matrix to the network
         inputLen = len(self.inputLayer.shape)
         # print self.sequence_length,'hell'
@@ -317,7 +325,7 @@ class Network(object):
         # For each connection initialize the weights(parameters) of the connection
         for connection in self.connections:
             connection.initializeWeights()
-            print connection.name
+            # print connection.name
             # if the connection is of type Recurrent, then run feedForward once to initialize the hidden state of
             # that connection
 
@@ -352,7 +360,7 @@ class Network(object):
                                                 # ,n_steps=self.sequence_length-1
                                                  )
             self.output = output[-1]
-            print 'output dim = ',self.output.ndim
+            # print 'output dim = ',self.output.ndim
         else:
             self.output = self.step(self.x)
         # print type(self.scan_updates)
@@ -545,6 +553,7 @@ class Network(object):
                     print("Training mini-batch number {0}".format(iteration))
                 cost_ij = train_mb(minibatch_index)
                 print 'minibatch ended'
+                time.sleep(10)
                 if (iteration+1) % num_training_batches == 0:
                     validation_accuracy = np.mean(
                         [validate_mb_accuracy(j) for j in range(num_validation_batches)])
